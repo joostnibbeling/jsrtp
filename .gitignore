@@ -1,0 +1,7 @@
+﻿/packages
+/Debug
+/.vs
+/jsrtp/Debug
+/jsrtp-tests/Debug
+*.filters
+*.user
