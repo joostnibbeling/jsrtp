@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "../jsrtp/AES.h"
 #include "../jsrtp/container_slice.h"
+#include "../jsrtp/sha1.h"
 
 
 
@@ -147,3 +148,31 @@ TEST(container_slice, array_slice_change_it)
 
 	EXPECT_EQ(input, output);
 }
+
+TEST(sha1, sha1)
+{
+	sha1 hash;
+	const char* message = "The quick brown fox jumps over the lazy dog";
+	const uint8_t* in = reinterpret_cast<const uint8_t*>(message);
+	hash.append(in, std::strlen(message));
+
+	std::array<uint8_t, 20> digest_e = { 0x2f, 0xd4, 0xe1, 0xc6, 0x7a, 0x2d, 0x28, 0xfc, 0xed, 0x84, 0x9e, 0xe1, 0xbb, 0x76, 0xe7, 0x39, 0x1b, 0x93, 0xeb, 0x12 };
+	auto digest = hash.get_digest();
+
+	EXPECT_EQ(digest_e, digest);
+}
+
+TEST(sha1, sha1_long)
+{
+	sha1 hash;
+	const char* message = "The quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dog";
+	const uint8_t* in = reinterpret_cast<const uint8_t*>(message);
+	hash.append(in, std::strlen(message));
+
+	std::array<uint8_t, 20> digest_e = {0xd4,  0x2f, 0x85, 0x8a, 0xd8, 0x12, 0xfd, 0x98, 0x6f, 0xd8, 0xdc, 0x72, 0x16, 0xaf, 0x5f, 0x88, 0xbc, 0xaa, 0x14, 0x63};
+	auto digest = hash.get_digest();
+
+	EXPECT_EQ(digest_e, digest);
+}
+
+
