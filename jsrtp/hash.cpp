@@ -3,7 +3,7 @@
 #include <numeric>
 #include <iostream>
 
-void sha1::append(const uint8_t* in, uint64_t len)
+void SHA1::append(const uint8_t* in, uint64_t len)
 {
 	if (message_len > std::numeric_limits<uint64_t>::max() - (len * 8))
 	{
@@ -14,7 +14,7 @@ void sha1::append(const uint8_t* in, uint64_t len)
 	message_len += len * 8;
 }
 
-void sha1::append(const std::vector<uint8_t>& in)
+void SHA1::append(const std::vector<uint8_t>& in)
 {
 	if (message_len > std::numeric_limits<uint64_t>::max() - (static_cast<uint64_t>(in.size()) * 8))
 	{
@@ -25,7 +25,7 @@ void sha1::append(const std::vector<uint8_t>& in)
 	message_len += static_cast<uint64_t>(in.size()) * BITS_PER_BYTE;
 }
 
-std::vector<uint8_t> sha1::preprocess_message()
+std::vector<uint8_t> SHA1::preprocess_message()
 {
 	std::vector<uint8_t> preprocessed(message);
 	preprocessed.push_back(0x80);
@@ -39,7 +39,7 @@ std::vector<uint8_t> sha1::preprocess_message()
 	return preprocessed;
 }
 
-std::array<uint32_t, 80> sha1::get_words(std::vector<uint8_t>::iterator chunk_start)
+std::array<uint32_t, 80> SHA1::get_words(std::vector<uint8_t>::iterator chunk_start)
 {
 	std::array<uint32_t, 80> words;
 
@@ -63,7 +63,7 @@ std::array<uint32_t, 80> sha1::get_words(std::vector<uint8_t>::iterator chunk_st
 	return words;
 }
 
-std::vector<uint8_t> sha1::get_digest()
+std::vector<uint8_t> SHA1::get_digest()
 {
 	uint32_t h0 = 0x67452301;
 	uint32_t h1 = 0xEFCDAB89;
@@ -136,7 +136,7 @@ std::vector<uint8_t> sha1::get_digest()
 	return digest;
 }
 
-void sha1::reverse_copy(std::vector<uint8_t>::iterator out, uint32_t src)
+void SHA1::reverse_copy(std::vector<uint8_t>::iterator out, uint32_t src)
 {
 	out[0] = (src & 0xFF << 24) >> 24;
 	out[1] = (src & 0xFF << 16) >> 16;
@@ -144,14 +144,14 @@ void sha1::reverse_copy(std::vector<uint8_t>::iterator out, uint32_t src)
 	out[3] = src & 0xFF;	
 }
 
-uint32_t sha1::left_rotate(uint32_t in, int rotate)
+uint32_t SHA1::left_rotate(uint32_t in, int rotate)
 {
 	uint32_t mask = 0xffffffff << (WORD_SIZE - rotate);
 	uint32_t left = (in & mask) >> (WORD_SIZE - rotate);
 	return (in << rotate) + left;
 }
 
-int sha1::get_block_size()
+int SHA1::get_block_size()
 {
 	return BLOCK_SIZE;
 }

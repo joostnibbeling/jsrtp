@@ -4,11 +4,11 @@
 #include "hash.h"
 
 
-class hmac
+class HMAC
 {
 public:
-	hmac();
-	hmac(std::unique_ptr<HashFunction> in_hash);
+	HMAC();
+	HMAC(std::unique_ptr<HashFunction> in_hash);
 	void set_key(std::vector<uint8_t> in_key);
 	void append(const uint8_t* in, uint64_t len);
 	void append(const std::vector<uint8_t>& in);

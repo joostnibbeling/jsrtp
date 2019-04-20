@@ -1,25 +1,25 @@
-#include "hmac.h"
+#include "HMAC.h"
 
-hmac::hmac() : hash(std::make_unique<sha1>()) {}
+HMAC::HMAC() : hash(std::make_unique<SHA1>()) {}
 
-hmac::hmac(std::unique_ptr<HashFunction> in_hash) : hash(std::move(in_hash)) {}
+HMAC::HMAC(std::unique_ptr<HashFunction> in_hash) : hash(std::move(in_hash)) {}
 
-void hmac::set_key(std::vector<uint8_t> in_key)
+void HMAC::set_key(std::vector<uint8_t> in_key)
 {
 	key = std::move(in_key);
 }
 
-void hmac::append(const uint8_t* in, uint64_t len)
+void HMAC::append(const uint8_t* in, uint64_t len)
 {
 	std::copy(in, in + len, std::back_inserter(message));
 }
 
-void hmac::append(const std::vector<uint8_t>& in)
+void HMAC::append(const std::vector<uint8_t>& in)
 {
 	std::copy(in.begin(), in.end(), std::back_inserter(message));
 }
 
-std::vector<uint8_t> hmac::get_digest()
+std::vector<uint8_t> HMAC::get_digest()
 {
 	unsigned int block_size = hash->get_block_size();
 	

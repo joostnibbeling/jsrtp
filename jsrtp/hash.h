@@ -16,7 +16,7 @@ public:
 
 };
 
-class sha1 : public HashFunction
+class SHA1 : public HashFunction
 {
 public:
 	virtual void append(const uint8_t* in, uint64_t len);
