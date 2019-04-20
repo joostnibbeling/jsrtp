@@ -1,51 +1,51 @@
-#ifndef __CONTAINERSLICE_H__
-#define __CONTAINERSLICE_H__
+#ifndef __ContainerSLICE_H__
+#define __ContainerSLICE_H__
 
-template<class container>
-class container_slice
+template<class Container>
+class ContainerSlice
 {
 public:
-	container_slice(typename container::iterator begin, typename container::iterator end);
-	container_slice() = default;
+	ContainerSlice(typename Container::iterator begin, typename Container::iterator end);
+	ContainerSlice() = default;
 
 	auto size();
 	auto begin();
 	auto end();
-	decltype(auto) operator[](typename container::size_type idx);
+	decltype(auto) operator[](typename Container::size_type idx);
 private:
-	typename container::iterator _begin;
-	typename container::iterator _end;
-	typename std::iterator_traits<typename container::iterator>::difference_type _size;
+	typename Container::iterator _begin;
+	typename Container::iterator _end;
+	typename std::iterator_traits<typename Container::iterator>::difference_type _size;
 };
 
-template<class container>
-container_slice<container>::container_slice(typename container::iterator begin, typename container::iterator end)
+template<class Container>
+ContainerSlice<Container>::ContainerSlice(typename Container::iterator begin, typename Container::iterator end)
 {
 	_begin = begin;
 	_end = end;
 	_size = std::distance(begin, end);
 }
 
-template<class container>
-auto container_slice<container>::size()
+template<class Container>
+auto ContainerSlice<Container>::size()
 {
 	return _size;
 }
 
-template<class container>
-auto container_slice<container>::begin()
+template<class Container>
+auto ContainerSlice<Container>::begin()
 {
 	return _begin;
 }
 
-template<class container>
-auto container_slice<container>::end()
+template<class Container>
+auto ContainerSlice<Container>::end()
 {
 	return _end;
 }
 
-template<class container>
-decltype(auto) container_slice<container>::operator[](typename container::size_type idx)
+template<class Container>
+decltype(auto) ContainerSlice<Container>::operator[](typename Container::size_type idx)
 {
 	return *(_begin + idx);
 }

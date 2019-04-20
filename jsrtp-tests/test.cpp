@@ -82,27 +82,27 @@ TEST(AES, decryption)
 }
 
 
-TEST(container_slice, vector_slice_init)
+TEST(ContainerSlice, vector_slice_init)
 {
 	std::vector<uint8_t> input = { 0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75 };
-	container_slice<std::vector<uint8_t>> slice(input.begin(), input.end());
+	ContainerSlice<std::vector<uint8_t>> slice(input.begin(), input.end());
 	EXPECT_EQ(slice.size(), input.size());
 }
 
 
-TEST(container_slice, vector_slice_part)
+TEST(ContainerSlice, vector_slice_part)
 {
 	std::vector<uint8_t> input = { 0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75 };
-	container_slice<std::vector<uint8_t>> slice(input.begin() + 4, input.end() - 4);
+	ContainerSlice<std::vector<uint8_t>> slice(input.begin() + 4, input.end() - 4);
 	EXPECT_EQ(slice.size(), 16 - 8);
 }
 
 
-TEST(container_slice, vector_slice_change_it)
+TEST(ContainerSlice, vector_slice_change_it)
 {
 	std::vector<uint8_t> input = { 0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75 };
 	std::vector<uint8_t> output = { 0x54, 0x68, 0x61, 0x74, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x67, 0x20, 0x46, 0x75 };
-	container_slice<std::vector<uint8_t>> slice(input.begin() + 4, input.end() - 4);
+	ContainerSlice<std::vector<uint8_t>> slice(input.begin() + 4, input.end() - 4);
 
 	for (auto& in : slice)
 	{
@@ -113,11 +113,11 @@ TEST(container_slice, vector_slice_change_it)
 }
 
 
-TEST(container_slice, vector_slice_change_op)
+TEST(ContainerSlice, vector_slice_change_op)
 {
 	std::vector<uint8_t> input = { 0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75 };
 	std::vector<uint8_t> output = { 0x54, 0x68, 0x61, 0x74, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x67, 0x20, 0x46, 0x75 };
-	container_slice<std::vector<uint8_t>> slice(input.begin() + 4, input.end() - 4);
+	ContainerSlice<std::vector<uint8_t>> slice(input.begin() + 4, input.end() - 4);
 
 	for (int i = 0; i < slice.size(); i++)
 	{
@@ -127,19 +127,19 @@ TEST(container_slice, vector_slice_change_op)
 	EXPECT_EQ(input, output);
 }
 
-TEST(container_slice, array_slice_init)
+TEST(ContainerSlice, array_slice_init)
 {
 	std::array<uint8_t, 16> input = { 0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75 };
-	container_slice<std::array<uint8_t, 16>> slice(input.begin(), input.end());
+	ContainerSlice<std::array<uint8_t, 16>> slice(input.begin(), input.end());
 	EXPECT_EQ(slice.size(), input.size());
 }
 
 
-TEST(container_slice, array_slice_change_it)
+TEST(ContainerSlice, array_slice_change_it)
 {
 	std::array<uint8_t, 16> input = { 0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75 };
 	std::array<uint8_t, 16> output = { 0x54, 0x68, 0x61, 0x74, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x67, 0x20, 0x46, 0x75 };
-	container_slice<decltype(input)> slice(input.begin() + 4, input.end() - 4);
+	ContainerSlice<decltype(input)> slice(input.begin() + 4, input.end() - 4);
 
 	for (auto& in : slice)
 	{
