@@ -5,7 +5,7 @@
 
 void sha1::append(const uint8_t* in, uint64_t len)
 {
-	if (message_len > std::numeric_limits<uint64_t>::max() - (len*8))
+	if (message_len > std::numeric_limits<uint64_t>::max() - (len * 8))
 	{
 		throw std::runtime_error("Message size is too large");
 	}
@@ -14,12 +14,22 @@ void sha1::append(const uint8_t* in, uint64_t len)
 	message_len += len * 8;
 }
 
-std::array<uint8_t, sha1::digest_size> sha1::get_digest()
+void sha1::append(const std::vector<uint8_t>& in)
+{
+	if (message_len > std::numeric_limits<uint64_t>::max() - (static_cast<uint64_t>(in.size()) * 8))
+	{
+		throw std::runtime_error("Message size is too large");
+	}
+
+	std::copy(in.begin(), in.end(), std::back_inserter(message));
+	message_len += static_cast<uint64_t>(in.size()) * 8;
+}
+
+std::vector<uint8_t> sha1::get_digest()
 {
 	std::vector<uint8_t> preprocessed(message);
 	preprocessed.push_back(0x80);
 
-	//int to_pad = 56 - (preprocessed.size() % 56) % 56;
 	int to_pad = (64 - ((preprocessed.size() + 8) % 64) ) % 64;
 	
 	std::fill_n(std::back_inserter(preprocessed), to_pad, 0x0);
@@ -102,17 +112,19 @@ std::array<uint8_t, sha1::digest_size> sha1::get_digest()
 
 	}
 
-	std::array<uint8_t, digest_size> digest {};
+	std::vector<uint8_t> digest(digest_size);
 	reverse_copy(digest.begin(), h0);
 	reverse_copy(digest.begin() + 4, h1);
 	reverse_copy(digest.begin() + 8, h2);
 	reverse_copy(digest.begin() + 12, h3);
 	reverse_copy(digest.begin() + 16, h4);
-
+	
+	message.clear();
+	message_len = 0;
 	return digest;
 }
 
-void sha1::reverse_copy(std::array<uint8_t, digest_size>::iterator out, uint32_t src)
+void sha1::reverse_copy(std::vector<uint8_t>::iterator out, uint32_t src)
 {
 	out[0] = (src & 0xFF << 24) >> 24;
 	out[1] = (src & 0xFF << 16) >> 16;
@@ -125,4 +137,14 @@ uint32_t sha1::left_rotate(uint32_t in, int rotate)
 	uint32_t mask = 0xffffffff << (word_size - rotate);
 	uint32_t left = (in & mask) >> (word_size - rotate);
 	return (in << rotate) + left;
+}
+
+int sha1::get_digest_size()
+{
+	return digest_size;
+}
+
+int sha1::get_block_size()
+{
+	return block_size;
 }

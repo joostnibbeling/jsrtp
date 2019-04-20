@@ -124,11 +124,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AES.cpp" />
+    <ClCompile Include="hmac.cpp" />
     <ClCompile Include="sha1.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AES.h" />
     <ClInclude Include="container_slice.h" />
+    <ClInclude Include="hmac.h" />
     <ClInclude Include="sha1.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
