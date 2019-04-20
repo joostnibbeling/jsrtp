@@ -123,12 +123,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AES.cpp" />
+    <ClCompile Include="cipher.cpp" />
     <ClCompile Include="hmac.cpp" />
     <ClCompile Include="hash.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AES.h" />
+    <ClInclude Include="cipher.h" />
     <ClInclude Include="container_slice.h" />
     <ClInclude Include="hmac.h" />
     <ClInclude Include="hash.h" />

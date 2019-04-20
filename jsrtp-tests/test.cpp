@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "../jsrtp/AES.h"
+#include "../jsrtp/cipher.h"
 #include "../jsrtp/container_slice.h"
 #include "../jsrtp/hash.h"
 #include "../jsrtp/hmac.h"
