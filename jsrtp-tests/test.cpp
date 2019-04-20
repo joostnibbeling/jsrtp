@@ -1,7 +1,8 @@
 #include "gtest/gtest.h"
 #include "../jsrtp/AES.h"
 #include "../jsrtp/container_slice.h"
-
+#include "../jsrtp/hash.h"
+#include "../jsrtp/hmac.h"
 
 
 TEST(AES, sbox)
@@ -147,3 +148,69 @@ TEST(container_slice, array_slice_change_it)
 
 	EXPECT_EQ(input, output);
 }
+
+TEST(sha1, sha1)
+{
+	sha1 hash;
+	const char* message = "The quick brown fox jumps over the lazy dog";
+	const uint8_t* in = reinterpret_cast<const uint8_t*>(message);
+	hash.append(in, std::strlen(message));
+
+	std::vector<uint8_t> digest_e = { 0x2f, 0xd4, 0xe1, 0xc6, 0x7a, 0x2d, 0x28, 0xfc, 0xed, 0x84, 0x9e, 0xe1, 0xbb, 0x76, 0xe7, 0x39, 0x1b, 0x93, 0xeb, 0x12 };
+	auto digest = hash.get_digest();
+
+	EXPECT_EQ(digest_e, digest);
+}
+
+TEST(sha1, sha1_long)
+{
+	sha1 hash;
+	const char* message = "The quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dogThe quick brown fox jumps over the lazy dog";
+	const uint8_t* in = reinterpret_cast<const uint8_t*>(message);
+	hash.append(in, std::strlen(message));
+
+	std::vector<uint8_t> digest_e = {0xd4,  0x2f, 0x85, 0x8a, 0xd8, 0x12, 0xfd, 0x98, 0x6f, 0xd8, 0xdc, 0x72, 0x16, 0xaf, 0x5f, 0x88, 0xbc, 0xaa, 0x14, 0x63};
+	auto digest = hash.get_digest();
+
+	EXPECT_EQ(digest_e, digest);
+}
+
+TEST(sha1, empty)
+{
+	sha1 hash;
+	std::vector<uint8_t> digest_e = { 0xda, 0x39, 0xa3, 0xee, 0x5e, 0x6b, 0x4b, 0x0d, 0x32, 0x55, 0xbf, 0xef, 0x95, 0x60, 0x18, 0x90, 0xaf, 0xd8, 0x07, 0x09 };
+	auto digest = hash.get_digest();
+	EXPECT_EQ(digest_e, digest);
+}
+
+
+TEST(hmac_sha1, test_1)
+{
+	std::vector<uint8_t> key(20);
+	std::fill_n(key.begin(), key.size(), 'e');
+	std::vector<uint8_t> data = { 'H', 'i', ' ', 'T', 'h', 'e', 'r', 'e' };
+	std::vector<uint8_t> expected = { 0xb2, 0x82, 0x6d, 0xb3, 0x7b, 0x5e, 0x8b, 0x1f, 0xd2, 0x2a, 0xcc, 0x70, 0x57, 0xbd, 0x6f, 0x9b, 0x73, 0x75, 0x06, 0xce };
+	hmac hmac_sha1;
+	hmac_sha1.set_key(std::move(key));
+	hmac_sha1.append(data.data(), data.size());
+	auto digest = hmac_sha1.get_digest();
+
+	EXPECT_EQ(digest, expected);
+}
+
+TEST(hmac_sha1, test_6)
+{
+	std::vector<uint8_t> key(80);
+	std::fill_n(key.begin(), key.size(), 0xAA);
+	const char* in = "Test Using Larger Than Block-Size Key - Hash Key First";
+
+	hmac hmac_sha1;
+	hmac_sha1.set_key(std::move(key));
+	hmac_sha1.append(reinterpret_cast<const uint8_t*>(in), std::strlen(in));
+
+	std::vector<uint8_t> digest_e = { 0xaa, 0x4a, 0xe5, 0xe1, 0x52, 0x72, 0xd0, 0x0e, 0x95, 0x70, 0x56, 0x37, 0xce, 0x8a, 0x3b, 0x55, 0xed, 0x40, 0x21, 0x12 };
+	auto digest = hmac_sha1.get_digest();
+
+	EXPECT_EQ(digest, digest_e);
+}
+
