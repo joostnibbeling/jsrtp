@@ -11,6 +11,7 @@ public:
 	virtual void set_key(std::vector<uint8_t> key) = 0;
 	virtual std::vector<uint8_t> encrypt(std::vector<uint8_t> plain_text) = 0;
 	virtual std::vector<uint8_t> decrypt(std::vector<uint8_t> cipher_text) = 0;
+	virtual int get_block_size() = 0;
 	virtual ~Cipher() {}
 };
 
@@ -26,6 +27,7 @@ public:
 	virtual void set_key(std::vector<uint8_t> key);
 	virtual std::vector<uint8_t> encrypt(std::vector<uint8_t> plain_text);
 	virtual std::vector<uint8_t> decrypt(std::vector<uint8_t> cipher_text);
+	virtual int get_block_size();
 
 	static uint8_t sbox_substitute(uint8_t in);
 	static uint8_t sbox_inverse_substitute(uint8_t in);

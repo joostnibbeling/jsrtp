@@ -2,6 +2,7 @@
 #include <limits>
 #include <numeric>
 #include <iostream>
+#include "utils.h"
 
 void SHA1::append(const uint8_t* in, uint64_t len)
 {
@@ -125,23 +126,16 @@ std::vector<uint8_t> SHA1::get_digest()
 	}
 
 	std::vector<uint8_t> digest(DIGEST_SIZE);
-	reverse_copy(digest.begin(), h0);
-	reverse_copy(digest.begin() + 4, h1);
-	reverse_copy(digest.begin() + 8, h2);
-	reverse_copy(digest.begin() + 12, h3);
-	reverse_copy(digest.begin() + 16, h4);
+
+	std::generate(digest.begin(), digest.begin() + 4, LittleEndianToBytes(h0));
+	std::generate(digest.begin() + 4, digest.begin() + 8, LittleEndianToBytes(h1));
+	std::generate(digest.begin() + 8, digest.begin() + 12, LittleEndianToBytes(h2));
+	std::generate(digest.begin() + 12, digest.begin() + 16, LittleEndianToBytes(h3));
+	std::generate(digest.begin() + 16, digest.begin() + 20, LittleEndianToBytes(h4));
 	
 	message.clear();
 	message_len = 0;
 	return digest;
-}
-
-void SHA1::reverse_copy(std::vector<uint8_t>::iterator out, uint32_t src)
-{
-	out[0] = (src & 0xFF << 24) >> 24;
-	out[1] = (src & 0xFF << 16) >> 16;
-	out[2] = (src & 0xFF << 8) >> 8;
-	out[3] = src & 0xFF;	
 }
 
 uint32_t SHA1::left_rotate(uint32_t in, int rotate)

@@ -1,0 +1,64 @@
+ROC:
+	- 32-bit
+	- Number of times sequences number has been reset to 0
+	- SRTP index:
+		- 48 bit
+		- 2^16 * ROC + SEQ
+
+s_1: 
+	- Receiver only
+	- 16 bit
+	- highest received RTP sequence number
+	
+- Encryption algorithm (cipher + operation mode)
+- Authentication algorithm
+
+- Replay list
+	- Receiver only
+	- Recently received and authenticated
+
+- MKI indicator
+
+- MKI Len (in octets)
+
+- Current active MKI
+	- Sender only
+	
+- Master keys
+	- Counter number of packets
+	- n_e: session key length for encryption
+	- n_a: session key length for authentication
+	- Optional
+		- Master salt
+		- Key derivation rate (power of 2)
+		- MKI value
+		- <From, To> values
+		
+- SRTCP:
+	- No rollover and s_1 value
+	- Separate replay list
+	- Separate counter
+	
+Sender procedure
+	- Determine cryptographic context
+	- Determine index
+	- Determine master key and salt (with index or mki)
+	- Determine session keys and salt:
+		- Master key
+		- Master salt
+		- Key derivation rate
+		- Session key lengths
+	- Encrypt RTP
+		- Encryption algorithm
+		- Session encryption key
+		- Session salt
+		- Index
+	- If MKI indicator is set to one, append MKI
+	- Compute authentication tag and append
+		- ROC
+		- Authenication algorithm
+		- Session authentication Key
+	- Update ROC
+	
+
+		

@@ -1,0 +1,40 @@
+#ifndef __UTILS_H__
+#define __UTILS_H__
+#include <vector>
+#include <array>
+#include <cstdint>
+
+constexpr static int BITS_PER_BYTE = 8;
+
+template<std::size_t N>
+using ByteArray = std::array<uint8_t, N>;
+
+template<std::size_t N>
+using ByteArrayIt = typename std::array<uint8_t, N>::iterator;
+
+using ByteVector = std::vector<uint8_t>;
+using ByteVectorIt = typename std::vector<uint8_t>::iterator;
+
+
+template<typename Intergral, std::size_t bytes>
+class LittleEndianToBytesGen
+{
+public:
+	LittleEndianToBytesGen(Intergral in) : little_endian(in), offset(bytes * BITS_PER_BYTE) {}
+	uint8_t operator() () {
+		offset -= 8;
+		if (offset < 0) return 0;
+		return (little_endian & 0xFF << offset) >> offset;
+	}
+private:
+	Intergral little_endian;
+	int offset;
+};
+
+template<typename Integral, std::size_t bytes = sizeof(Integral)>
+auto LittleEndianToBytes(Integral in)
+{
+	return LittleEndianToBytesGen<Integral, bytes>(in);
+}
+
+#endif

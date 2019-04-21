@@ -123,15 +123,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="block_mode.cpp" />
     <ClCompile Include="cipher.cpp" />
     <ClCompile Include="hmac.cpp" />
     <ClCompile Include="hash.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="block_mode.h" />
     <ClInclude Include="cipher.h" />
     <ClInclude Include="container_slice.h" />
     <ClInclude Include="hmac.h" />
     <ClInclude Include="hash.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

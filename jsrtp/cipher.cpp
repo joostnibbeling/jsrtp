@@ -43,6 +43,7 @@ std::vector<uint8_t>::const_iterator AES::KeySchedule::get_expanded_key_word(int
 	return expanded_keys.cbegin() + i * word_size;
 }
 
+
 void AES::KeySchedule::derive_key_schedule()
 {
 	rounds = get_nr_rounds(key.size());
@@ -442,5 +443,10 @@ void AES::inverse_mix_columns(std::vector<uint8_t>::iterator block)
 		}
 	}
 	std::copy(mixed.begin(), mixed.end(), block);
+}
+
+int AES::get_block_size()
+{
+	return block_size;
 }
 
