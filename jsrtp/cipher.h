@@ -1,5 +1,5 @@
-#ifndef __AES_H__
-#define __AES_H__
+#ifndef __CIPHER_H__
+#define __CIPHER_H__
 
 #include<cstdint>
 #include<array>

@@ -1,5 +1,5 @@
-#ifndef __SHA1__H__
-#define __SHA1__H__
+#ifndef __HASH__H__
+#define __HASH__H__
 
 #include <cstdint>
 #include <vector>
