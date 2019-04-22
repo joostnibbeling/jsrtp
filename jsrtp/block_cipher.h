@@ -20,9 +20,9 @@ public:
 class AES : public BlockCipher<16>
 {
 public:
-	constexpr static int word_size = 4;
+	constexpr static int WORD_SIZE = 4;
 
-	using word = ByteArray<word_size>;
+	using word = ByteArray<WORD_SIZE>;
 	using state = ByteArray<BLOCK_SIZE>;
 
 	virtual void set_key(std::vector<uint8_t> key);

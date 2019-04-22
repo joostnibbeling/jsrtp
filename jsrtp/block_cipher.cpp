@@ -40,22 +40,22 @@ ByteVectorConstIt AES::KeySchedule::get_round_key(int round)
 
 ByteVectorConstIt AES::KeySchedule::get_expanded_key_word(int i)
 {
-	return expanded_keys.cbegin() + i * word_size;
+	return expanded_keys.cbegin() + i * WORD_SIZE;
 }
 
 
 void AES::KeySchedule::derive_key_schedule()
 {
 	rounds = get_nr_rounds(key.size());
-	int N = key.size() / word_size;
+	int N = key.size() / WORD_SIZE;
 	expanded_keys.resize(rounds * BLOCK_SIZE);
 
-	for (int i = 0; i < rounds * word_size; i++)
+	for (int i = 0; i < rounds * WORD_SIZE; i++)
 	{
-		auto word_i = expanded_keys.begin() + i * word_size;
+		auto word_i = expanded_keys.begin() + i * WORD_SIZE;
 		if (i < N)
 		{
-			std::copy(key.begin() + i * word_size, key.begin() + i * word_size + word_size, word_i);
+			std::copy(key.begin() + i * WORD_SIZE, key.begin() + i * WORD_SIZE + WORD_SIZE, word_i);
 		}
 		else if ((i >= N) && (i % N == 0))
 		{
@@ -91,7 +91,7 @@ template<class iter>
 AES::word AES::KeySchedule::substitute_word(iter to_substitute)
 {
 	word out;
-	for (int i = 0; i < word_size; i++)
+	for (int i = 0; i < WORD_SIZE; i++)
 	{
 		out[i] = AES::sbox_substitute(to_substitute[i]);
 	}
@@ -104,7 +104,7 @@ void AES::KeySchedule::rotate_word(iter to_rotate)
 {
 	word tmp;
 
-	for (int i = 0; i < word_size; i++)
+	for (int i = 0; i < WORD_SIZE; i++)
 	{
 		tmp[i] = to_rotate[i];
 	}
@@ -147,7 +147,7 @@ AES::word AES::KeySchedule::get_roundc(unsigned int i)
 template<class iter_out, class iter_in1, class iter_in2>
 void AES::KeySchedule::xor_word(iter_out out, iter_in1 in1, iter_in2 in2)
 {
-	for (int i = 0; i < word_size; i++)
+	for (int i = 0; i < WORD_SIZE; i++)
 	{
 		out[i] = in1[i] ^ in2[i];
 	}
@@ -239,7 +239,7 @@ void AES::sub_bytes(ByteVectorIt block)
 
 void AES::shift_rows(ByteVectorIt block)
 {
-	for (int i = 1; i < word_size; i++)
+	for (int i = 1; i < WORD_SIZE; i++)
 	{
 		word row;
 
@@ -342,7 +342,7 @@ uint8_t  AES::mul14(uint8_t in)
 
 int AES::get_index(int i, int j)
 {
-	return i * word_size + j;
+	return i * WORD_SIZE + j;
 }
 
 ByteVector AES::decrypt(const ByteVector& cipher_text)
@@ -398,7 +398,7 @@ void AES::inverse_sub_bytes(ByteVectorIt block)
 
 void AES::inverse_shift_rows(ByteVectorIt block)
 {
-	for (int i = 1; i < word_size; i++)
+	for (int i = 1; i < WORD_SIZE; i++)
 	{
 		word row;
 
