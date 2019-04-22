@@ -5,29 +5,28 @@
 #include <vector>
 #include <array>
 
+template<int d, int b>
 class HashFunction
 {
 public:
 	virtual void append(const uint8_t* in, uint64_t len) = 0;
 	virtual void append(const std::vector<uint8_t>& in) = 0;
 	virtual std::vector<uint8_t> get_digest() = 0;
-	virtual int get_block_size() = 0;
 	virtual ~HashFunction() {}
+	static constexpr int DIGEST_SIZE = d;
+	static constexpr int BLOCK_SIZE = b;
 
 };
 
-class SHA1 : public HashFunction
+class SHA1 : public HashFunction<20, 64>
 {
 public:
 	virtual void append(const uint8_t* in, uint64_t len);
 	virtual void append(const std::vector<uint8_t>& in);
 	virtual std::vector<uint8_t> get_digest();
-	virtual int get_block_size();
 
 	constexpr static int MESSAGE_LEN_SIZE = 8;
-	constexpr static int DIGEST_SIZE = 20;
 	constexpr static int WORD_SIZE = 32;
-	constexpr static int BLOCK_SIZE = 64;
 
 private:
 	std::vector<uint8_t> message;

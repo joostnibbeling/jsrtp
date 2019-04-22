@@ -1,4 +1,4 @@
-#include "cipher.h"
+#include "block_cipher.h"
 #include <iostream>
 #include "container_slice.h"
 
@@ -35,7 +35,7 @@ std::vector<uint8_t>::const_iterator AES::KeySchedule::get_round_key(int round)
 		throw std::invalid_argument("Invalid round");
 	}
 
-	return expanded_keys.cbegin() + round * block_size;
+	return expanded_keys.cbegin() + round * BLOCK_SIZE;
 }
 
 std::vector<uint8_t>::const_iterator AES::KeySchedule::get_expanded_key_word(int i)
@@ -48,7 +48,7 @@ void AES::KeySchedule::derive_key_schedule()
 {
 	rounds = get_nr_rounds(key.size());
 	int N = key.size() / word_size;
-	expanded_keys.resize(rounds * block_size);
+	expanded_keys.resize(rounds * BLOCK_SIZE);
 
 	for (int i = 0; i < rounds * word_size; i++)
 	{
@@ -179,20 +179,20 @@ void AES::set_key(std::vector<uint8_t> key)
 
 std::vector<uint8_t> AES::encrypt(std::vector<uint8_t> plain_text)
 {
-	if (plain_text.size() % block_size != 0)
+	if (plain_text.size() % BLOCK_SIZE != 0)
 	{
 		throw std::invalid_argument("Invalid block length");
 	}
 
 
 	std::vector<uint8_t> cipher_text(plain_text.size());
-	int blocks = plain_text.size() / block_size;
+	int blocks = plain_text.size() / BLOCK_SIZE;
 
 	for (int block_ind = 0; block_ind < blocks; ++block_ind)
 	{
-		auto block = cipher_text.begin() + block_ind * block_size;
-		std::copy(plain_text.begin() + block_ind * block_size,
-			plain_text.begin() + block_ind * block_size + block_size,
+		auto block = cipher_text.begin() + block_ind * BLOCK_SIZE;
+		std::copy(plain_text.begin() + block_ind * BLOCK_SIZE,
+			plain_text.begin() + block_ind * BLOCK_SIZE + BLOCK_SIZE,
 			block);
 
 		encrypt_block(block);
@@ -223,7 +223,7 @@ void AES::encrypt_block(std::vector<uint8_t>::iterator block)
 
 void AES::add_key(std::vector<uint8_t>::iterator block, std::vector<uint8_t>::const_iterator key)
 {
-	for (int i = 0; i < block_size; i++)
+	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
 		block[i] ^= key[i];
 	}
@@ -231,7 +231,7 @@ void AES::add_key(std::vector<uint8_t>::iterator block, std::vector<uint8_t>::co
 
 void AES::sub_bytes(std::vector<uint8_t>::iterator block)
 {
-	for (int i = 0; i < block_size; i++)
+	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
 		block[i] = sbox_substitute(block[i]);
 	}
@@ -354,19 +354,19 @@ int AES::get_index(int i, int j)
 
 std::vector<uint8_t> AES::decrypt(std::vector<uint8_t> cipher_text)
 {
-	if (cipher_text.size() % block_size != 0)
+	if (cipher_text.size() % BLOCK_SIZE != 0)
 	{
 		throw std::invalid_argument("Invalid block length");
 	}
 
 	std::vector<uint8_t> plain_text(cipher_text.size());
-	int blocks = cipher_text.size() / block_size;
+	int blocks = cipher_text.size() / BLOCK_SIZE;
 
 	for (int block_ind = 0; block_ind < blocks; ++block_ind)
 	{
-		auto block = plain_text.begin() + block_ind * block_size;
-		std::copy(cipher_text.begin() + block_ind * block_size,
-					cipher_text.begin() + block_ind * block_size + block_size,
+		auto block = plain_text.begin() + block_ind * BLOCK_SIZE;
+		std::copy(cipher_text.begin() + block_ind * BLOCK_SIZE,
+					cipher_text.begin() + block_ind * BLOCK_SIZE + BLOCK_SIZE,
 					block);
 
 		decrypt_block(block);
@@ -397,7 +397,7 @@ void AES::decrypt_block(std::vector<uint8_t>::iterator block)
 
 void AES::inverse_sub_bytes(std::vector<uint8_t>::iterator block)
 {
-	for (int i = 0; i < block_size; i++)
+	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
 		block[i] = sbox_inverse_substitute(block[i]);
 	}
@@ -444,9 +444,3 @@ void AES::inverse_mix_columns(std::vector<uint8_t>::iterator block)
 	}
 	std::copy(mixed.begin(), mixed.end(), block);
 }
-
-int AES::get_block_size()
-{
-	return block_size;
-}
-

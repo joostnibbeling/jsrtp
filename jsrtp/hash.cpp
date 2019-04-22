@@ -144,8 +144,3 @@ uint32_t SHA1::left_rotate(uint32_t in, int rotate)
 	uint32_t left = (in & mask) >> (WORD_SIZE - rotate);
 	return (in << rotate) + left;
 }
-
-int SHA1::get_block_size()
-{
-	return BLOCK_SIZE;
-}

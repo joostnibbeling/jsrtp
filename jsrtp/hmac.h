@@ -3,12 +3,10 @@
 #include <vector>
 #include "hash.h"
 
-
+template <typename HashFunction>
 class HMAC
 {
 public:
-	HMAC();
-	HMAC(std::unique_ptr<HashFunction> in_hash);
 	void set_key(std::vector<uint8_t> in_key);
 	void append(const uint8_t* in, uint64_t len);
 	void append(const std::vector<uint8_t>& in);
@@ -16,8 +14,61 @@ public:
 private:
 	std::vector<uint8_t> key;
 	std::vector<uint8_t> message;
-	std::unique_ptr<HashFunction> hash = nullptr;
+	HashFunction hash;
 };
+
+template <typename HashFunction>
+void HMAC<HashFunction>::set_key(std::vector<uint8_t> in_key)
+{
+	key = std::move(in_key);
+}
+
+template <typename HashFunction>
+void HMAC<HashFunction>::append(const uint8_t* in, uint64_t len)
+{
+	std::copy(in, in + len, std::back_inserter(message));
+}
+
+template <typename HashFunction>
+void HMAC<HashFunction>::append(const std::vector<uint8_t>& in)
+{
+	std::copy(in.begin(), in.end(), std::back_inserter(message));
+}
+
+template <typename HashFunction>
+std::vector<uint8_t> HMAC<HashFunction>::get_digest()
+{
+	unsigned int block_size = HashFunction::BLOCK_SIZE;
+
+	if (key.size() > block_size)
+	{
+		hash.append(key);
+		key = hash.get_digest();
+	}
+
+	if (key.size() < block_size)
+	{
+		int to_pad = block_size - key.size();
+		std::fill_n(std::back_inserter(key), to_pad, 0);
+	}
+
+	std::vector<uint8_t> o_key_pad(block_size);
+	std::transform(key.begin(), key.end(), o_key_pad.begin(), [](uint8_t in) { return in ^ 0x5c; });
+
+	std::vector<uint8_t> i_key_pad(block_size);
+	std::transform(key.begin(), key.end(), i_key_pad.begin(), [](uint8_t in) {return in ^ 0x36; });
+
+	hash.append(i_key_pad);
+	hash.append(message);
+
+	message.clear();
+
+	auto inner_digest = hash.get_digest();
+	hash.append(o_key_pad);
+	hash.append(inner_digest);
+
+	return  hash.get_digest();
+}
 
 #endif
 

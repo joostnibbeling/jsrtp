@@ -1,33 +1,32 @@
-#ifndef __CIPHER_H__
-#define __CIPHER_H__
+#ifndef __BLOCK_CIPHER_H__
+#define __BLOCK_CIPHER_H__
 
 #include<cstdint>
 #include<array>
 #include<vector>
 
-class Cipher
+template <int block_size>
+class BlockCipher
 {
 public:
+	virtual ~BlockCipher() {}
 	virtual void set_key(std::vector<uint8_t> key) = 0;
 	virtual std::vector<uint8_t> encrypt(std::vector<uint8_t> plain_text) = 0;
 	virtual std::vector<uint8_t> decrypt(std::vector<uint8_t> cipher_text) = 0;
-	virtual int get_block_size() = 0;
-	virtual ~Cipher() {}
+	static constexpr int BLOCK_SIZE = block_size;
 };
 
-class AES : public Cipher
+class AES : public BlockCipher<16>
 {
 public:
 	constexpr static int word_size = 4;
-	constexpr static int block_size = 16;
 
 	using word = std::array<uint8_t, word_size>;
-	using state = std::array<uint8_t, block_size>;
+	using state = std::array<uint8_t, BLOCK_SIZE>;
 
 	virtual void set_key(std::vector<uint8_t> key);
 	virtual std::vector<uint8_t> encrypt(std::vector<uint8_t> plain_text);
 	virtual std::vector<uint8_t> decrypt(std::vector<uint8_t> cipher_text);
-	virtual int get_block_size();
 
 	static uint8_t sbox_substitute(uint8_t in);
 	static uint8_t sbox_inverse_substitute(uint8_t in);
