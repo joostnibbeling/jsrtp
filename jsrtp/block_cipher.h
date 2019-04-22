@@ -4,15 +4,16 @@
 #include<cstdint>
 #include<array>
 #include<vector>
+#include "utils.h"
 
 template <int block_size>
 class BlockCipher
 {
 public:
 	virtual ~BlockCipher() {}
-	virtual void set_key(std::vector<uint8_t> key) = 0;
-	virtual std::vector<uint8_t> encrypt(std::vector<uint8_t> plain_text) = 0;
-	virtual std::vector<uint8_t> decrypt(std::vector<uint8_t> cipher_text) = 0;
+	virtual void set_key(ByteVector key) = 0;
+	virtual ByteVector encrypt(const ByteVector& plain_text) = 0;
+	virtual ByteVector decrypt(const ByteVector& cipher_text) = 0;
 	static constexpr int BLOCK_SIZE = block_size;
 };
 
@@ -21,12 +22,12 @@ class AES : public BlockCipher<16>
 public:
 	constexpr static int word_size = 4;
 
-	using word = std::array<uint8_t, word_size>;
-	using state = std::array<uint8_t, BLOCK_SIZE>;
+	using word = ByteArray<word_size>;
+	using state = ByteArray<BLOCK_SIZE>;
 
 	virtual void set_key(std::vector<uint8_t> key);
-	virtual std::vector<uint8_t> encrypt(std::vector<uint8_t> plain_text);
-	virtual std::vector<uint8_t> decrypt(std::vector<uint8_t> cipher_text);
+	virtual ByteVector encrypt(const ByteVector& plain_text);
+	virtual ByteVector decrypt(const ByteVector& cipher_text);
 
 	static uint8_t sbox_substitute(uint8_t in);
 	static uint8_t sbox_inverse_substitute(uint8_t in);
@@ -35,13 +36,13 @@ public:
 	class KeySchedule
 	{
 	public:
-		void set_key(std::vector<uint8_t> in_key);
-		std::vector<uint8_t>::const_iterator get_round_key(int round);
+		void set_key(ByteVector in_key);
+		ByteVectorConstIt get_round_key(int round);
 	private:
 		int rounds = 0;
-		std::vector<uint8_t> round_constants = { 0x1 };
-		std::vector<uint8_t> expanded_keys;
-		std::vector<uint8_t> key;
+		ByteVector round_constants = { 0x1 };
+		ByteVector expanded_keys;
+		ByteVector key;
 
 		void derive_key_schedule();
 		word get_roundc(unsigned int i);
@@ -55,7 +56,7 @@ public:
 		template<class iter_out, class iter_in1, class iter_in2>
 		void xor_word(iter_out out, iter_in1 in1, iter_in2 in2);
 
-		std::vector<uint8_t>::const_iterator get_expanded_key_word(int i);
+		ByteVectorConstIt get_expanded_key_word(int i);
 	};
 
 	KeySchedule schedule;
@@ -64,17 +65,17 @@ private:
 	int rounds = 0;
 	int get_index(int i, int j);
 
-	void encrypt_block(std::vector<uint8_t>::iterator block);
-	void add_key(std::vector<uint8_t>::iterator block, std::vector<uint8_t>::const_iterator key);
-	void sub_bytes(std::vector<uint8_t>::iterator block);
-	void shift_rows(std::vector<uint8_t>::iterator block);
-	void mix_columns(std::vector<uint8_t>::iterator block);
+	void encrypt_block(ByteVectorIt block);
+	void add_key(ByteVectorIt block, ByteVectorConstIt key);
+	void sub_bytes(ByteVectorIt block);
+	void shift_rows(ByteVectorIt block);
+	void mix_columns(ByteVectorIt block);
 
 
-	void decrypt_block(std::vector<uint8_t>::iterator block);
-	void inverse_sub_bytes(std::vector<uint8_t>::iterator block);
-	void inverse_shift_rows(std::vector<uint8_t>::iterator block);
-	void inverse_mix_columns(std::vector<uint8_t>::iterator block);
+	void decrypt_block(ByteVectorIt block);
+	void inverse_sub_bytes(ByteVectorIt block);
+	void inverse_shift_rows(ByteVectorIt block);
+	void inverse_mix_columns(ByteVectorIt block);
 
 
 	uint8_t mul(uint8_t in, uint8_t mul);
@@ -87,7 +88,22 @@ private:
 	uint8_t mul13(uint8_t in);
 	uint8_t mul14(uint8_t in);
 
-	constexpr static std::array<std::array<uint8_t, 16>, 16> sbox = { {
+	static constexpr std::array<ByteArray<4>, 4> mix_mat = { {
+		{ 0x2, 0x3, 0x1, 0x1 },
+		{ 0x1, 0x2, 0x3, 0x1 },
+		{ 0x1, 0x1, 0x2, 0x3 },	
+		{ 0x3, 0x1, 0x1, 0x2 }
+	} };
+
+	static constexpr std::array<ByteArray<4>, 4> inverse_mix_mat = { {
+		{ 0xE, 0xB, 0xD, 0x9 },
+		{ 0x9, 0xE, 0xB, 0xD },
+		{ 0xD, 0x9, 0xE, 0xB },
+		{ 0xB, 0xD, 0x9, 0xE }
+	} };
+
+
+	static constexpr std::array<ByteArray<16>, 16> sbox = { {
 		{0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76},
 		{0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0},
 		{0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15},
@@ -106,7 +122,7 @@ private:
 		{0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16}
 	} };
 
-	constexpr static std::array<std::array<uint8_t, 16>, 16> invertex_sbox = { {
+	constexpr static std::array<ByteArray<16>, 16> invertex_sbox = { {
 		{0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb},
 		{0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb},
 		{0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e},

@@ -12,8 +12,12 @@ using ByteArray = std::array<uint8_t, N>;
 template<std::size_t N>
 using ByteArrayIt = typename std::array<uint8_t, N>::iterator;
 
+template<std::size_t N>
+using ByteArrayConstIt = typename std::array<uint8_t, N>::const_iterator;
+
 using ByteVector = std::vector<uint8_t>;
 using ByteVectorIt = typename std::vector<uint8_t>::iterator;
+using ByteVectorConstIt = typename std::vector<uint8_t>::const_iterator;
 
 
 template<typename Intergral, std::size_t bytes>

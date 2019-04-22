@@ -22,13 +22,13 @@ uint8_t AES::sbox_get_row(uint8_t in)
 	return (in & 0xF0) >> 4;
 }
 
-void AES::KeySchedule::set_key(std::vector<uint8_t> in_key)
+void AES::KeySchedule::set_key(ByteVector in_key)
 {
 	key = std::move(in_key);
 	derive_key_schedule();
 }
 
-std::vector<uint8_t>::const_iterator AES::KeySchedule::get_round_key(int round)
+ByteVectorConstIt AES::KeySchedule::get_round_key(int round)
 {
 	if (round >= rounds)
 	{
@@ -38,7 +38,7 @@ std::vector<uint8_t>::const_iterator AES::KeySchedule::get_round_key(int round)
 	return expanded_keys.cbegin() + round * BLOCK_SIZE;
 }
 
-std::vector<uint8_t>::const_iterator AES::KeySchedule::get_expanded_key_word(int i)
+ByteVectorConstIt AES::KeySchedule::get_expanded_key_word(int i)
 {
 	return expanded_keys.cbegin() + i * word_size;
 }
@@ -171,13 +171,13 @@ int AES::get_nr_rounds(std::size_t length)
 	}
 }
 
-void AES::set_key(std::vector<uint8_t> key)
+void AES::set_key(ByteVector key)
 {
 	rounds = get_nr_rounds(key.size());
 	schedule.set_key(std::move(key));
 }
 
-std::vector<uint8_t> AES::encrypt(std::vector<uint8_t> plain_text)
+ByteVector AES::encrypt(const ByteVector& plain_text)
 {
 	if (plain_text.size() % BLOCK_SIZE != 0)
 	{
@@ -185,7 +185,7 @@ std::vector<uint8_t> AES::encrypt(std::vector<uint8_t> plain_text)
 	}
 
 
-	std::vector<uint8_t> cipher_text(plain_text.size());
+	ByteVector cipher_text(plain_text.size());
 	int blocks = plain_text.size() / BLOCK_SIZE;
 
 	for (int block_ind = 0; block_ind < blocks; ++block_ind)
@@ -201,7 +201,7 @@ std::vector<uint8_t> AES::encrypt(std::vector<uint8_t> plain_text)
 	return cipher_text;
 }
 
-void AES::encrypt_block(std::vector<uint8_t>::iterator block)
+void AES::encrypt_block(ByteVectorIt block)
 {
 	auto rkey = schedule.get_round_key(0);
 	add_key(block, rkey);
@@ -221,7 +221,7 @@ void AES::encrypt_block(std::vector<uint8_t>::iterator block)
 	add_key(block, rkey);
 }
 
-void AES::add_key(std::vector<uint8_t>::iterator block, std::vector<uint8_t>::const_iterator key)
+void AES::add_key(ByteVectorIt block, ByteVectorConstIt key)
 {
 	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
@@ -229,7 +229,7 @@ void AES::add_key(std::vector<uint8_t>::iterator block, std::vector<uint8_t>::co
 	}
 }
 
-void AES::sub_bytes(std::vector<uint8_t>::iterator block)
+void AES::sub_bytes(ByteVectorIt block)
 {
 	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
@@ -237,7 +237,7 @@ void AES::sub_bytes(std::vector<uint8_t>::iterator block)
 	}
 }
 
-void AES::shift_rows(std::vector<uint8_t>::iterator block)
+void AES::shift_rows(ByteVectorIt block)
 {
 	for (int i = 1; i < word_size; i++)
 	{
@@ -255,25 +255,18 @@ void AES::shift_rows(std::vector<uint8_t>::iterator block)
 	}
 }
 
-void AES::mix_columns(std::vector<uint8_t>::iterator block)
+void AES::mix_columns(ByteVectorIt block)
 {
 	state mixed;
-	static std::array<std::array<uint8_t, 4>, 4> mat = { {
-		{ 0x2, 0x3, 0x1, 0x1 },
-		{ 0x1, 0x2, 0x3, 0x1 },
-		{ 0x1, 0x1, 0x2, 0x3 },
-		{ 0x3, 0x1, 0x1, 0x2 } 
-		} };
-
 	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
 		{
 			mixed[get_index(i, j)] =
-				mul(block[get_index(i, 0)], mat[j][0]) ^
-				mul(block[get_index(i, 1)], mat[j][1]) ^
-				mul(block[get_index(i, 2)], mat[j][2]) ^
-				mul(block[get_index(i, 3)], mat[j][3]);
+				mul(block[get_index(i, 0)], mix_mat[j][0]) ^
+				mul(block[get_index(i, 1)], mix_mat[j][1]) ^
+				mul(block[get_index(i, 2)], mix_mat[j][2]) ^
+				mul(block[get_index(i, 3)], mix_mat[j][3]);
 		}
 	}
 
@@ -352,14 +345,14 @@ int AES::get_index(int i, int j)
 	return i * word_size + j;
 }
 
-std::vector<uint8_t> AES::decrypt(std::vector<uint8_t> cipher_text)
+ByteVector AES::decrypt(const ByteVector& cipher_text)
 {
 	if (cipher_text.size() % BLOCK_SIZE != 0)
 	{
 		throw std::invalid_argument("Invalid block length");
 	}
 
-	std::vector<uint8_t> plain_text(cipher_text.size());
+	ByteVector plain_text(cipher_text.size());
 	int blocks = cipher_text.size() / BLOCK_SIZE;
 
 	for (int block_ind = 0; block_ind < blocks; ++block_ind)
@@ -375,7 +368,7 @@ std::vector<uint8_t> AES::decrypt(std::vector<uint8_t> cipher_text)
 	return plain_text;
 }
 
-void AES::decrypt_block(std::vector<uint8_t>::iterator block)
+void AES::decrypt_block(ByteVectorIt block)
 {
 	auto rkey = schedule.get_round_key(rounds - 1);
 	add_key(block, rkey);
@@ -395,7 +388,7 @@ void AES::decrypt_block(std::vector<uint8_t>::iterator block)
 	add_key(block, rkey);
 }
 
-void AES::inverse_sub_bytes(std::vector<uint8_t>::iterator block)
+void AES::inverse_sub_bytes(ByteVectorIt block)
 {
 	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
@@ -403,7 +396,7 @@ void AES::inverse_sub_bytes(std::vector<uint8_t>::iterator block)
 	}
 }
 
-void AES::inverse_shift_rows(std::vector<uint8_t>::iterator block)
+void AES::inverse_shift_rows(ByteVectorIt block)
 {
 	for (int i = 1; i < word_size; i++)
 	{
@@ -421,25 +414,19 @@ void AES::inverse_shift_rows(std::vector<uint8_t>::iterator block)
 	}
 }
 
-void AES::inverse_mix_columns(std::vector<uint8_t>::iterator block)
+void AES::inverse_mix_columns(ByteVectorIt block)
 {
 	state mixed;
-	static std::array<std::array<uint8_t, 4>, 4> mat = { {
-		{ 0xE, 0xB, 0xD, 0x9 },
-		{ 0x9, 0xE, 0xB, 0xD },
-		{ 0xD, 0x9, 0xE, 0xB },
-		{ 0xB, 0xD, 0x9, 0xE }
-		} };
 
 	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
 		{
 			mixed[get_index(i, j)] =
-				mul(block[get_index(i, 0)], mat[j][0]) ^
-				mul(block[get_index(i, 1)], mat[j][1]) ^
-				mul(block[get_index(i, 2)], mat[j][2]) ^
-				mul(block[get_index(i, 3)], mat[j][3]);
+				mul(block[get_index(i, 0)], inverse_mix_mat[j][0]) ^
+				mul(block[get_index(i, 1)], inverse_mix_mat[j][1]) ^
+				mul(block[get_index(i, 2)], inverse_mix_mat[j][2]) ^
+				mul(block[get_index(i, 3)], inverse_mix_mat[j][3]);
 		}
 	}
 	std::copy(mixed.begin(), mixed.end(), block);

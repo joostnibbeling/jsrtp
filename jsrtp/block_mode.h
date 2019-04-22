@@ -9,26 +9,56 @@ class BlockMode
 public:
 	virtual void set_key(ByteVector) = 0;
 	virtual void set_iv(ByteVector) = 0;
-	virtual ByteVector encrypt(const ByteVector& plaint_text) = 0;
+	virtual ByteVector encrypt(const ByteVector& plain_text) = 0;
 	virtual ByteVector decrypt(const ByteVector& cipher_text) = 0;
 	virtual ~BlockMode() {}
+protected:
+	Cipher cipher;
 };
+
+template<typename Cipher>
+class EBC : BlockMode<Cipher>
+{
+public:
+	virtual void set_key(ByteVector in_key);
+	virtual void set_iv(ByteVector in_iv) {};
+	virtual ByteVector encrypt(const ByteVector& plain_text);
+	virtual ByteVector decrypt(const ByteVector& cipher_text);
+};
+
+template<typename Cipher>
+void EBC<Cipher>::set_key(ByteVector in_key)
+{
+	cipher.set_key(std::move(in_key));
+}
+
+template<typename Cipher>
+ByteVector EBC<Cipher>::encrypt(const ByteVector& plain_text)
+{
+	return cipher.encrypt(plain_text);
+}
+
+template<typename Cipher>
+ByteVector EBC<Cipher>::decrypt(const ByteVector& cipher_text)
+{
+	return cipher.decrypt(cipher_text);
+}
+
+
 
 template<typename Cipher>
 class CTR : BlockMode<Cipher>
 {
-
 public:
 	virtual void set_key(ByteVector in_key);
 	virtual void set_iv(ByteVector in_iv);
-	virtual ByteVector encrypt(const ByteVector& plaint_text);
+	virtual ByteVector encrypt(const ByteVector& plain_text);
 	virtual ByteVector decrypt(const ByteVector& cipher_text);
 private:
 	void reset_ctr();
 	void increment_ctr();
 	void encrypt_ctr();
 
-	Cipher cipher;
 	ByteVector ctr;
 	ByteVector encrypted_ctr;
 	int ctr_offset = 0;
