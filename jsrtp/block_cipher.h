@@ -17,6 +17,43 @@ public:
 	static constexpr int BLOCK_SIZE = block_size;
 };
 
+
+template <int block_size = 16>
+class NullCipher : public BlockCipher<block_size>
+{
+	virtual void set_key(ByteVector key);
+	virtual ByteVector encrypt(const ByteVector& plain_text);
+	virtual ByteVector decrypt(const ByteVector& cipher_text);
+};
+
+template <int block_size>
+void NullCipher<block_size>::set_key(ByteVector key)
+{
+	
+}
+
+template <int block_size>
+ByteVector NullCipher<block_size>::encrypt(const ByteVector& plain_text)
+{
+	if (plain_text.size() % this->BLOCK_SIZE != 0)
+	{
+		throw std::invalid_argument("Invalid block length");
+	}
+
+	return ByteVector(plain_text);
+}
+
+template <int block_size>
+ByteVector NullCipher<block_size>::decrypt(const ByteVector& cipher_text)
+{
+	if (cipher_text.size() % this->BLOCK_SIZE != 0)
+	{
+		throw std::invalid_argument("Invalid block length");
+	}
+
+	return ByteVector(cipher_text);
+}
+
 class AES : public BlockCipher<16>
 {
 public:
@@ -25,7 +62,7 @@ public:
 	using word = ByteArray<WORD_SIZE>;
 	using state = ByteArray<BLOCK_SIZE>;
 
-	virtual void set_key(std::vector<uint8_t> key);
+	virtual void set_key(ByteVector key);
 	virtual ByteVector encrypt(const ByteVector& plain_text);
 	virtual ByteVector decrypt(const ByteVector& cipher_text);
 

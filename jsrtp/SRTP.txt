@@ -12,6 +12,8 @@ s_1:
 	
 - Encryption algorithm (cipher + operation mode)
 - Authentication algorithm
+- n_e: session key length for encryption
+- n_a: session key length for authentication
 
 - Replay list
 	- Receiver only
@@ -26,8 +28,6 @@ s_1:
 	
 - Master keys
 	- Counter number of packets
-	- n_e: session key length for encryption
-	- n_a: session key length for authentication
 	- Optional
 		- Master salt
 		- Key derivation rate (power of 2)
@@ -59,6 +59,19 @@ Sender procedure
 		- Authenication algorithm
 		- Session authentication Key
 	- Update ROC
+
+AES_CM_128_HMAC_SHA1_80:
+	AES-CM:
+		n_e = 128
+		n_s = 112
+	HMAC-SHA1
+		n_a = 160
+		n_tag = 80
+	AES-CM PRF
+		n_mk = 128
+		n_ms = 112
+		kdr = 0
+	
 	
 
 		

@@ -125,6 +125,7 @@
   <ItemGroup>
     <ClCompile Include="block_cipher.cpp" />
     <ClCompile Include="hash.cpp" />
+    <ClCompile Include="key_derivation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="block_mode.h" />
@@ -132,6 +133,7 @@
     <ClInclude Include="container_slice.h" />
     <ClInclude Include="hmac.h" />
     <ClInclude Include="hash.h" />
+    <ClInclude Include="key_derivation.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

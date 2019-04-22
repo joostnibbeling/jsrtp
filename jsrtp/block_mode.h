@@ -12,7 +12,6 @@ public:
 	virtual ByteVector encrypt(const ByteVector& plain_text) = 0;
 	virtual ByteVector decrypt(const ByteVector& cipher_text) = 0;
 	virtual ~BlockMode() {}
-protected:
 	Cipher cipher;
 };
 
@@ -29,22 +28,20 @@ public:
 template<typename Cipher>
 void EBC<Cipher>::set_key(ByteVector in_key)
 {
-	cipher.set_key(std::move(in_key));
+	this->cipher.set_key(std::move(in_key));
 }
 
 template<typename Cipher>
 ByteVector EBC<Cipher>::encrypt(const ByteVector& plain_text)
 {
-	return cipher.encrypt(plain_text);
+	return this->cipher.encrypt(plain_text);
 }
 
 template<typename Cipher>
 ByteVector EBC<Cipher>::decrypt(const ByteVector& cipher_text)
 {
-	return cipher.decrypt(cipher_text);
+	return this->cipher.decrypt(cipher_text);
 }
-
-
 
 template<typename Cipher>
 class CTR : BlockMode<Cipher>
@@ -67,7 +64,7 @@ private:
 template<typename Cipher>
 void CTR<Cipher>::set_key(ByteVector in_key)
 {
-	cipher.set_key(std::move(in_key));
+	this->cipher.set_key(std::move(in_key));
 }
 
 template<typename Cipher>
@@ -132,7 +129,7 @@ void CTR<Cipher>::increment_ctr()
 template<typename Cipher>
 void CTR<Cipher>::encrypt_ctr()
 {
-	encrypted_ctr = cipher.encrypt(ctr);
+	encrypted_ctr = this->cipher.encrypt(ctr);
 	ctr_offset = 0;
 }
 
