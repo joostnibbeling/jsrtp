@@ -12,8 +12,8 @@ class BlockCipher
 public:
 	virtual ~BlockCipher() {}
 	virtual void set_key(ByteVector key) = 0;
-	virtual ByteVector encrypt(const ByteVector& plain_text) = 0;
-	virtual ByteVector decrypt(const ByteVector& cipher_text) = 0;
+	virtual ByteVector encrypt(const ByteVector& plain_text) const = 0;
+	virtual ByteVector decrypt(const ByteVector& cipher_text) const = 0;
 	static constexpr int BLOCK_SIZE = block_size;
 };
 
@@ -63,18 +63,14 @@ public:
 	using state = ByteArray<BLOCK_SIZE>;
 
 	virtual void set_key(ByteVector key);
-	virtual ByteVector encrypt(const ByteVector& plain_text);
-	virtual ByteVector decrypt(const ByteVector& cipher_text);
-
-	static uint8_t sbox_substitute(uint8_t in);
-	static uint8_t sbox_inverse_substitute(uint8_t in);
-	static int get_nr_rounds(std::size_t);
+	virtual ByteVector encrypt(const ByteVector& plain_text) const override;
+	virtual ByteVector decrypt(const ByteVector& cipher_text) const override;
 
 	class KeySchedule
 	{
 	public:
 		void set_key(ByteVector in_key);
-		ByteVectorConstIt get_round_key(int round);
+		ByteVectorConstIt get_round_key(int round) const;
 	private:
 		int rounds = 0;
 		ByteVector round_constants = { 0x1 };
@@ -85,45 +81,47 @@ public:
 		word get_roundc(unsigned int i);
 
 		template<class iter>
-		word substitute_word(iter to_substitute);
+		word substitute_word(iter to_substitute) const;
 
 		template<class iter>
-		void rotate_word(iter to_rotate);
+		void rotate_word(iter to_rotate) const;
 
 		template<class iter_out, class iter_in1, class iter_in2>
-		void xor_word(iter_out out, iter_in1 in1, iter_in2 in2);
+		void xor_word(iter_out out, iter_in1 in1, iter_in2 in2) const;
 
-		ByteVectorConstIt get_expanded_key_word(int i);
-	};
+		ByteVectorConstIt get_expanded_key_word(int i) const;
+	} schedule;
 
-	KeySchedule schedule;
+	static uint8_t sbox_substitute(uint8_t in);
+	static uint8_t sbox_inverse_substitute(uint8_t in);
+	static int get_nr_rounds(std::size_t);
 
 private:
 	int rounds = 0;
-	int get_index(int i, int j);
+	int get_index(int i, int j) const;
 
-	void encrypt_block(ByteVectorIt block);
-	void add_key(ByteVectorIt block, ByteVectorConstIt key);
-	void sub_bytes(ByteVectorIt block);
-	void shift_rows(ByteVectorIt block);
-	void mix_columns(ByteVectorIt block);
-
-
-	void decrypt_block(ByteVectorIt block);
-	void inverse_sub_bytes(ByteVectorIt block);
-	void inverse_shift_rows(ByteVectorIt block);
-	void inverse_mix_columns(ByteVectorIt block);
+	void encrypt_block(ByteVectorIt block) const;
+	void add_key(ByteVectorIt block, ByteVectorConstIt key) const;
+	void sub_bytes(ByteVectorIt block) const;
+	void shift_rows(ByteVectorIt block) const;
+	void mix_columns(ByteVectorIt block) const;
 
 
-	uint8_t mul(uint8_t in, uint8_t mul);
-	uint8_t mul1(uint8_t in);
-	uint8_t mul2(uint8_t in);
-	uint8_t mul3(uint8_t in);
+	void decrypt_block(ByteVectorIt block) const;
+	void inverse_sub_bytes(ByteVectorIt block) const;
+	void inverse_shift_rows(ByteVectorIt block) const;
+	void inverse_mix_columns(ByteVectorIt block) const;
 
-	uint8_t mul9(uint8_t in);
-	uint8_t mul11(uint8_t in);
-	uint8_t mul13(uint8_t in);
-	uint8_t mul14(uint8_t in);
+
+	uint8_t mul(uint8_t in, uint8_t mul) const;
+	uint8_t mul1(uint8_t in) const;
+	uint8_t mul2(uint8_t in) const;
+	uint8_t mul3(uint8_t in) const;
+
+	uint8_t mul9(uint8_t in) const;
+	uint8_t mul11(uint8_t in) const;
+	uint8_t mul13(uint8_t in) const;
+	uint8_t mul14(uint8_t in) const;
 
 	static constexpr std::array<ByteArray<4>, 4> mix_mat = { {
 		{ 0x2, 0x3, 0x1, 0x1 },

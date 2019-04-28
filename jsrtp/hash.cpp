@@ -26,7 +26,7 @@ void SHA1::append(const std::vector<uint8_t>& in)
 	message_len += static_cast<uint64_t>(in.size()) * BITS_PER_BYTE;
 }
 
-std::vector<uint8_t> SHA1::preprocess_message()
+std::vector<uint8_t> SHA1::preprocess_message() const
 {
 	std::vector<uint8_t> preprocessed(message);
 	preprocessed.push_back(0x80);
@@ -40,7 +40,7 @@ std::vector<uint8_t> SHA1::preprocess_message()
 	return preprocessed;
 }
 
-std::array<uint32_t, 80> SHA1::get_words(std::vector<uint8_t>::iterator chunk_start)
+std::array<uint32_t, 80> SHA1::get_words(std::vector<uint8_t>::iterator chunk_start) const
 {
 	std::array<uint32_t, 80> words;
 
@@ -138,7 +138,7 @@ std::vector<uint8_t> SHA1::get_digest()
 	return digest;
 }
 
-uint32_t SHA1::left_rotate(uint32_t in, int rotate)
+uint32_t SHA1::left_rotate(uint32_t in, int rotate) const
 {
 	uint32_t mask = 0xffffffff << (WORD_SIZE - rotate);
 	uint32_t left = (in & mask) >> (WORD_SIZE - rotate);

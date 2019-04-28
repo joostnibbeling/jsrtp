@@ -11,7 +11,7 @@ void KeyDerivation::set_master_salt(ByteVector in_master_salt)
 	master_salt = std::move(in_master_salt);
 }
 
-uint64_t KeyDerivation::get_r(uint64_t index)
+uint64_t KeyDerivation::get_r(uint64_t index) const
 {
 	if (kdr == 0) return 0;
 	else return index / kdr;

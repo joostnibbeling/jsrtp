@@ -30,22 +30,16 @@ public:
 	void set_kdr(int power);
 
 private:
-	
+	uint64_t get_r(uint64_t index) const;
+	CTR<AES> prf;
+	ByteVector master_salt;
+	int kdr = 0;
 	struct DerivedKey
 	{
 		uint64_t r = 0;
 		bool initial_derived = false;
 	};
-
 	std::map<Label, DerivedKey> derived_keys;
-	
-	uint64_t get_r(uint64_t index);
-
-	bool initial_derived = false;
-	CTR<AES> prf;
-	int kdr = 0;
-
-	ByteVector master_salt;
 };
 
 #endif

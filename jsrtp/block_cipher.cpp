@@ -28,17 +28,22 @@ void AES::KeySchedule::set_key(ByteVector in_key)
 	derive_key_schedule();
 }
 
-ByteVectorConstIt AES::KeySchedule::get_round_key(int round)
+ByteVectorConstIt AES::KeySchedule::get_round_key(int round) const
 {
+	if (key.size() == 0)
+	{
+		throw std::exception("AES key not set");
+	}
+
 	if (round >= rounds)
 	{
-		throw std::invalid_argument("Invalid round");
+		throw std::exception("Invalid AES round");
 	}
 
 	return expanded_keys.cbegin() + round * BLOCK_SIZE;
 }
 
-ByteVectorConstIt AES::KeySchedule::get_expanded_key_word(int i)
+ByteVectorConstIt AES::KeySchedule::get_expanded_key_word(int i) const
 {
 	return expanded_keys.cbegin() + i * WORD_SIZE;
 }
@@ -88,7 +93,7 @@ void AES::KeySchedule::derive_key_schedule()
 }
 
 template<class iter>
-AES::word AES::KeySchedule::substitute_word(iter to_substitute)
+AES::word AES::KeySchedule::substitute_word(iter to_substitute) const
 {
 	word out;
 	for (int i = 0; i < WORD_SIZE; i++)
@@ -100,7 +105,7 @@ AES::word AES::KeySchedule::substitute_word(iter to_substitute)
 }
 
 template<class iter>
-void AES::KeySchedule::rotate_word(iter to_rotate)
+void AES::KeySchedule::rotate_word(iter to_rotate) const
 {
 	word tmp;
 
@@ -145,7 +150,7 @@ AES::word AES::KeySchedule::get_roundc(unsigned int i)
 }
 
 template<class iter_out, class iter_in1, class iter_in2>
-void AES::KeySchedule::xor_word(iter_out out, iter_in1 in1, iter_in2 in2)
+void AES::KeySchedule::xor_word(iter_out out, iter_in1 in1, iter_in2 in2) const
 {
 	for (int i = 0; i < WORD_SIZE; i++)
 	{
@@ -167,7 +172,7 @@ int AES::get_nr_rounds(std::size_t length)
 		return 15;
 		break;
 	default:
-		throw std::invalid_argument("Invalid key size");
+		throw std::exception("Invalid AES key size");
 	}
 }
 
@@ -177,13 +182,12 @@ void AES::set_key(ByteVector key)
 	schedule.set_key(std::move(key));
 }
 
-ByteVector AES::encrypt(const ByteVector& plain_text)
+ByteVector AES::encrypt(const ByteVector& plain_text) const
 {
 	if (plain_text.size() % BLOCK_SIZE != 0)
 	{
 		throw std::invalid_argument("Invalid block length");
 	}
-
 
 	ByteVector cipher_text(plain_text.size());
 	int blocks = plain_text.size() / BLOCK_SIZE;
@@ -201,7 +205,7 @@ ByteVector AES::encrypt(const ByteVector& plain_text)
 	return cipher_text;
 }
 
-void AES::encrypt_block(ByteVectorIt block)
+void AES::encrypt_block(ByteVectorIt block) const
 {
 	auto rkey = schedule.get_round_key(0);
 	add_key(block, rkey);
@@ -221,7 +225,7 @@ void AES::encrypt_block(ByteVectorIt block)
 	add_key(block, rkey);
 }
 
-void AES::add_key(ByteVectorIt block, ByteVectorConstIt key)
+void AES::add_key(ByteVectorIt block, ByteVectorConstIt key) const
 {
 	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
@@ -229,7 +233,7 @@ void AES::add_key(ByteVectorIt block, ByteVectorConstIt key)
 	}
 }
 
-void AES::sub_bytes(ByteVectorIt block)
+void AES::sub_bytes(ByteVectorIt block) const
 {
 	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
@@ -237,7 +241,7 @@ void AES::sub_bytes(ByteVectorIt block)
 	}
 }
 
-void AES::shift_rows(ByteVectorIt block)
+void AES::shift_rows(ByteVectorIt block) const
 {
 	for (int i = 1; i < WORD_SIZE; i++)
 	{
@@ -255,7 +259,7 @@ void AES::shift_rows(ByteVectorIt block)
 	}
 }
 
-void AES::mix_columns(ByteVectorIt block)
+void AES::mix_columns(ByteVectorIt block) const
 {
 	state mixed;
 	for (int i = 0; i < 4; i++)
@@ -273,7 +277,7 @@ void AES::mix_columns(ByteVectorIt block)
 	std::copy(mixed.begin(), mixed.end(), block);
 }
 
-uint8_t AES::mul(uint8_t in, uint8_t mul)
+uint8_t AES::mul(uint8_t in, uint8_t mul) const
 {
 	switch (mul)
 	{
@@ -298,12 +302,12 @@ uint8_t AES::mul(uint8_t in, uint8_t mul)
 	return 0;
 }
 
-uint8_t AES::mul1(uint8_t in)
+uint8_t AES::mul1(uint8_t in) const
 {
 	return in;
 }
 
-uint8_t AES::mul2(uint8_t in)
+uint8_t AES::mul2(uint8_t in) const
 {
 	uint8_t out = in << 1;
 
@@ -315,37 +319,37 @@ uint8_t AES::mul2(uint8_t in)
 	return out;
 }
 
-uint8_t AES::mul3(uint8_t in)
+uint8_t AES::mul3(uint8_t in) const
 {
 	return mul2(in) ^ in;
 }
 
-uint8_t AES::mul9(uint8_t in)
+uint8_t AES::mul9(uint8_t in) const
 {
 	return mul2(mul2(mul2(in))) ^ in;
 }
 
-uint8_t AES::mul11(uint8_t in)
+uint8_t AES::mul11(uint8_t in) const
 {
 	return mul2(mul2(mul2(in)) ^ in) ^ in;
 }
 
-uint8_t  AES::mul13(uint8_t in)
+uint8_t  AES::mul13(uint8_t in) const
 {
 	return mul2(mul2(mul2(in) ^ in)) ^ in;
 }
 
-uint8_t  AES::mul14(uint8_t in)
+uint8_t  AES::mul14(uint8_t in) const
 {
 	return mul2(mul2(mul2(in) ^ in) ^ in);
 }
 
-int AES::get_index(int i, int j)
+int AES::get_index(int i, int j) const
 {
 	return i * WORD_SIZE + j;
 }
 
-ByteVector AES::decrypt(const ByteVector& cipher_text)
+ByteVector AES::decrypt(const ByteVector& cipher_text) const
 {
 	if (cipher_text.size() % BLOCK_SIZE != 0)
 	{
@@ -368,7 +372,7 @@ ByteVector AES::decrypt(const ByteVector& cipher_text)
 	return plain_text;
 }
 
-void AES::decrypt_block(ByteVectorIt block)
+void AES::decrypt_block(ByteVectorIt block) const
 {
 	auto rkey = schedule.get_round_key(rounds - 1);
 	add_key(block, rkey);
@@ -388,7 +392,7 @@ void AES::decrypt_block(ByteVectorIt block)
 	add_key(block, rkey);
 }
 
-void AES::inverse_sub_bytes(ByteVectorIt block)
+void AES::inverse_sub_bytes(ByteVectorIt block) const
 {
 	for (int i = 0; i < BLOCK_SIZE; i++)
 	{
@@ -396,7 +400,7 @@ void AES::inverse_sub_bytes(ByteVectorIt block)
 	}
 }
 
-void AES::inverse_shift_rows(ByteVectorIt block)
+void AES::inverse_shift_rows(ByteVectorIt block) const
 {
 	for (int i = 1; i < WORD_SIZE; i++)
 	{
@@ -414,7 +418,7 @@ void AES::inverse_shift_rows(ByteVectorIt block)
 	}
 }
 
-void AES::inverse_mix_columns(ByteVectorIt block)
+void AES::inverse_mix_columns(ByteVectorIt block) const
 {
 	state mixed;
 

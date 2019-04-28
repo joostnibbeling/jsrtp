@@ -77,6 +77,11 @@ void CTR<Cipher>::set_iv(ByteVector in_iv)
 template<typename Cipher>
 ByteVector CTR<Cipher>::encrypt(const ByteVector& plain_text)
 {
+	if (ctr.size() == 0)
+	{
+		throw std::exception("CTR mode IV not set");
+	}
+	
 	int to_encrypt = plain_text.size();
 	ByteVector cipher_text;
 	cipher_text.reserve(plain_text.size());

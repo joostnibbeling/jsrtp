@@ -30,11 +30,11 @@ public:
 
 private:
 	std::vector<uint8_t> message;
-	std::array<uint32_t, 80> get_words(std::vector<uint8_t>::iterator chunk_start);
-	std::vector<uint8_t> preprocess_message();
+	std::array<uint32_t, 80> get_words(std::vector<uint8_t>::iterator chunk_start) const;
+	std::vector<uint8_t> preprocess_message() const;
 
 	uint64_t message_len = 0;
-	uint32_t left_rotate(uint32_t in, int rotate);
+	uint32_t left_rotate(uint32_t in, int rotate) const;
 };
 
 #endif
