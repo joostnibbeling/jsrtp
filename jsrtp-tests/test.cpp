@@ -343,18 +343,19 @@ TEST(CTR, CTR_AES_256_five)
 	EXPECT_EQ(cipher_text, cipher_text_e);
 }
 
+
+
 TEST(KEY_DERIVATION, AES_CM_PRF_SESSION_KEY)
 {
 	std::vector<uint8_t> master_key = { 0xE1,0xF9,0x7A,0x0D,0x3E,0x01,0x8B,0xE0,0xD6,0x4F,0xA3,0x2C,0x06,0xDE,0x41,0x39 };
 	std::vector<uint8_t> master_salt = { 0x0E,0xC6,0x75,0xAD,0x49,0x8A,0xFE,0xEB,0xB6,0x96,0x0B,0x3A,0xAB,0xE6 };
 	std::vector<uint8_t> key_e{ 0xC6,0x1E,0x7A,0x93,0x74,0x4F,0x39,0xEE,0x10,0x73,0x4A,0xFE,0x3F,0xF7,0xA0,0x87 };
 	uint64_t n = 16;
-	uint8_t label = 0x0;
 
 	KeyDerivation kdf;
 	kdf.set_master_key(master_key);
 	kdf.set_master_salt(master_salt);
-	auto key = kdf.derive_key(0, label, n);
+	auto key = kdf.derive_key(0, KeyDerivation::Label::srtp_encryption_key, n);
 	EXPECT_EQ(key, key_e);
 }
 
@@ -369,7 +370,7 @@ TEST(KEY_DERIVATION, AES_CM_SALT)
 	KeyDerivation kdf;
 	kdf.set_master_key(master_key);
 	kdf.set_master_salt(master_salt);
-	auto key = kdf.derive_key(0, label, n);
+	auto key = kdf.derive_key(0, KeyDerivation::Label::srtp_salting_key, n);
 	EXPECT_EQ(key, key_e);
 }
 
@@ -389,6 +390,45 @@ TEST(KEY_DERIVATION, AES_CM_AUTH)
 	KeyDerivation kdf;
 	kdf.set_master_key(master_key);
 	kdf.set_master_salt(master_salt);
-	auto key = kdf.derive_key(0, label, n);
+	auto key = kdf.derive_key(0, KeyDerivation::Label::srtp_authentication_key, n);
 	EXPECT_EQ(key, key_e);
 }
+
+TEST(KEY_DERIVATION, MUST_DERIVE)
+{
+	std::vector<uint8_t> master_key = { 0xE1,0xF9,0x7A,0x0D,0x3E,0x01,0x8B,0xE0,0xD6,0x4F,0xA3,0x2C,0x06,0xDE,0x41,0x39 };
+	std::vector<uint8_t> master_salt = { 0x0E,0xC6,0x75,0xAD,0x49,0x8A,0xFE,0xEB,0xB6,0x96,0x0B,0x3A,0xAB,0xE6 };
+	uint8_t label = 0x0;
+
+	KeyDerivation kdf;
+	kdf.set_kdr(2);
+	kdf.set_master_key(master_key);
+	kdf.set_master_salt(master_salt);
+
+	auto key = kdf.derive_key(0, KeyDerivation::Label::srtp_encryption_key, 16);
+
+	bool derive = kdf.must_derive_key(4, KeyDerivation::Label::srtp_encryption_key);
+
+	EXPECT_EQ(derive, true);
+}
+
+
+TEST(KEY_DERIVATION, MUST_NOT_DERIVE)
+{
+	std::vector<uint8_t> master_key = { 0xE1,0xF9,0x7A,0x0D,0x3E,0x01,0x8B,0xE0,0xD6,0x4F,0xA3,0x2C,0x06,0xDE,0x41,0x39 };
+	std::vector<uint8_t> master_salt = { 0x0E,0xC6,0x75,0xAD,0x49,0x8A,0xFE,0xEB,0xB6,0x96,0x0B,0x3A,0xAB,0xE6 };
+	uint8_t label = 0x0;
+
+	KeyDerivation kdf;
+	kdf.set_kdr(2);
+	kdf.set_master_key(master_key);
+	kdf.set_master_salt(master_salt);
+
+	auto key = kdf.derive_key(0, KeyDerivation::Label::srtp_encryption_key, 16);
+
+	bool derive = kdf.must_derive_key(2, KeyDerivation::Label::srtp_encryption_key);
+
+	EXPECT_EQ(derive, false);
+}
+
+

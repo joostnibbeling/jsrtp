@@ -14,7 +14,7 @@ public:
 private:
 	std::vector<uint8_t> key;
 	std::vector<uint8_t> message;
-	HashFunction hash;
+	HashFunction hash_function;
 };
 
 template <typename HashFunction>
@@ -42,8 +42,8 @@ std::vector<uint8_t> HMAC<HashFunction>::get_digest()
 
 	if (key.size() > block_size)
 	{
-		hash.append(key);
-		key = hash.get_digest();
+		hash_function.append(key);
+		key = hash_function.get_digest();
 	}
 
 	if (key.size() < block_size)
@@ -58,16 +58,16 @@ std::vector<uint8_t> HMAC<HashFunction>::get_digest()
 	std::vector<uint8_t> i_key_pad(block_size);
 	std::transform(key.begin(), key.end(), i_key_pad.begin(), [](uint8_t in) {return in ^ 0x36; });
 
-	hash.append(i_key_pad);
-	hash.append(message);
+	hash_function.append(i_key_pad);
+	hash_function.append(message);
 
 	message.clear();
 
-	auto inner_digest = hash.get_digest();
-	hash.append(o_key_pad);
-	hash.append(inner_digest);
+	auto inner_digest = hash_function.get_digest();
+	hash_function.append(o_key_pad);
+	hash_function.append(inner_digest);
 
-	return  hash.get_digest();
+	return  hash_function.get_digest();
 }
 
 #endif
