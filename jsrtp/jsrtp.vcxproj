@@ -123,16 +123,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="block_cipher.cpp" />
-    <ClCompile Include="hash.cpp" />
+    <ClCompile Include="aes.cpp" />
+    <ClCompile Include="encryption_transforms.cpp" />
+    <ClCompile Include="sha1.cpp" />
     <ClCompile Include="key_derivation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="block_mode.h" />
-    <ClInclude Include="block_cipher.h" />
+    <ClInclude Include="aes.h" />
     <ClInclude Include="container_slice.h" />
+    <ClInclude Include="encryption_transforms.h" />
     <ClInclude Include="hmac.h" />
-    <ClInclude Include="hash.h" />
+    <ClInclude Include="sha1.h" />
     <ClInclude Include="key_derivation.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>

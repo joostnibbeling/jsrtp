@@ -1,15 +1,19 @@
 #ifndef __HMAC_H__
 #define __HMAC_H__
 #include <vector>
-#include "hash.h"
 
 template <typename HashFunction>
 class HMAC
 {
 public:
 	void set_key(std::vector<uint8_t> in_key);
-	void append(const uint8_t* in, uint64_t len);
-	void append(const std::vector<uint8_t>& in);
+
+	template<typename Iter>
+	void append(const Iter in, uint64_t len);
+
+	template<typename Container>
+	void append(const Container& in);
+
 	std::vector<uint8_t> get_digest();
 private:
 	std::vector<uint8_t> key;
@@ -24,13 +28,15 @@ void HMAC<HashFunction>::set_key(std::vector<uint8_t> in_key)
 }
 
 template <typename HashFunction>
-void HMAC<HashFunction>::append(const uint8_t* in, uint64_t len)
+template<typename Iter>
+void HMAC<HashFunction>::append(Iter in, uint64_t len)
 {
 	std::copy(in, in + len, std::back_inserter(message));
 }
 
 template <typename HashFunction>
-void HMAC<HashFunction>::append(const std::vector<uint8_t>& in)
+template<typename Container>
+void HMAC<HashFunction>::append(const Container& in)
 {
 	std::copy(in.begin(), in.end(), std::back_inserter(message));
 }

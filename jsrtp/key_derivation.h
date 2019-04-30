@@ -1,7 +1,7 @@
 #ifndef __KEY_DERIVATION_H_
 #define __KEY_DERIVATION_H_
 #include "block_mode.h"
-#include "block_cipher.h"
+#include "aes.h"
 #include "utils.h"
 #include <map>
 

@@ -1,30 +1,8 @@
-#include "hash.h"
+#include "sha1.h"
 #include <limits>
 #include <numeric>
 #include <iostream>
 #include "utils.h"
-
-void SHA1::append(const uint8_t* in, uint64_t len)
-{
-	if (message_len > std::numeric_limits<uint64_t>::max() - (len * 8))
-	{
-		throw std::runtime_error("Message size is too large");
-	}
-
-	std::copy(in, in + len, std::back_inserter(message));
-	message_len += len * 8;
-}
-
-void SHA1::append(const std::vector<uint8_t>& in)
-{
-	if (message_len > std::numeric_limits<uint64_t>::max() - (static_cast<uint64_t>(in.size()) * 8))
-	{
-		throw std::runtime_error("Message size is too large");
-	}
-
-	std::copy(in.begin(), in.end(), std::back_inserter(message));
-	message_len += static_cast<uint64_t>(in.size()) * BITS_PER_BYTE;
-}
 
 std::vector<uint8_t> SHA1::preprocess_message() const
 {
