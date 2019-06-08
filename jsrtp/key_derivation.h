@@ -1,5 +1,5 @@
-#ifndef __KEY_DERIVATION_H_
-#define __KEY_DERIVATION_H_
+#ifndef __KEY_DERIVATION_H__
+#define __KEY_DERIVATION_H__
 #include "counter_mode.h"
 #include "aes.h"
 #include "utils.h"

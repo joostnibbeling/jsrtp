@@ -4,6 +4,21 @@
 #include <array>
 #include <cstdint>
 
+struct rtp_header
+{
+	uint8_t cc : 4;
+	uint8_t x : 1;
+	uint8_t p : 1;
+	uint8_t version : 2;
+	uint8_t pt : 7;
+	uint8_t m : 1;
+	uint16_t seq;
+	uint32_t ts;
+	uint32_t ssrc;
+};
+
+static_assert(sizeof(rtp_header) == 12, "rtp header size is invalid");
+
 constexpr static int BITS_PER_BYTE = 8;
 
 template<std::size_t N>

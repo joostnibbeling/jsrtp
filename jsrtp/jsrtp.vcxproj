@@ -124,20 +124,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="aes.cpp" />
-    <ClCompile Include="encryption_transforms.cpp" />
     <ClCompile Include="jsrtp.cpp" />
     <ClCompile Include="sha1.cpp" />
     <ClCompile Include="key_derivation.cpp" />
+    <ClCompile Include="srtp_auth.cpp" />
+    <ClCompile Include="srtp_cipher.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="counter_mode.h" />
     <ClInclude Include="aes.h" />
     <ClInclude Include="container_slice.h" />
-    <ClInclude Include="encryption_transforms.h" />
     <ClInclude Include="hmac.h" />
     <ClInclude Include="jsrtp.h" />
     <ClInclude Include="sha1.h" />
     <ClInclude Include="key_derivation.h" />
+    <ClInclude Include="srtp_auth.h" />
+    <ClInclude Include="srtp_cipher.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
