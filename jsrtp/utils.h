@@ -19,6 +19,20 @@ using ByteVector = std::vector<uint8_t>;
 using ByteVectorIt = typename std::vector<uint8_t>::iterator;
 using ByteVectorConstIt = typename std::vector<uint8_t>::const_iterator;
 
+template<typename Integral>
+Integral hton(Integral in)
+{
+	Integral res = 0;
+	Integral mask = 0xFF;
+
+	while (in != 0)
+	{
+		res = (res << BITS_PER_BYTE) + (in & mask);
+		in = in >> BITS_PER_BYTE;
+	}
+
+	return res;
+}
 
 template<typename Intergral, std::size_t bytes>
 class LittleEndianToBytesGen

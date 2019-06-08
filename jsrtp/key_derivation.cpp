@@ -4,11 +4,13 @@
 void KeyDerivation::set_master_key(ByteVector master_key)
 {
 	prf.set_key(std::move(master_key));
+	derived_keys.clear();
 }
 
 void KeyDerivation::set_master_salt(ByteVector in_master_salt)
 {
 	master_salt = std::move(in_master_salt);
+	derived_keys.clear();
 }
 
 uint64_t KeyDerivation::get_r(uint64_t index) const
@@ -64,9 +66,9 @@ ByteVector KeyDerivation::derive_key(uint64_t index, Label label, uint64_t n)
 
 	prf.set_iv(std::move(x));
 
-	ByteVector empty(static_cast<unsigned int>(n));
-	std::fill_n(empty.begin(), n, 0);
-	auto key = prf.encrypt(empty);
+	ByteVector key(static_cast<unsigned int>(n));
+	std::fill_n(key.begin(), n, 0);
+	prf.encrypt(key);
 
 	derived_keys[label].initial_derived = true;
 	derived_keys[label].r = r;

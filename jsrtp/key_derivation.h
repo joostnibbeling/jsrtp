@@ -1,6 +1,6 @@
 #ifndef __KEY_DERIVATION_H_
 #define __KEY_DERIVATION_H_
-#include "block_mode.h"
+#include "counter_mode.h"
 #include "aes.h"
 #include "utils.h"
 #include <map>
@@ -24,8 +24,10 @@ public:
 	static constexpr int PRF_M = 16;
 
 	ByteVector derive_key(uint64_t index, Label label, uint64_t n);
+
 	void set_master_key(ByteVector master_key);
 	void set_master_salt(ByteVector master_salt);
+
 	bool must_derive_key(uint64_t index, Label label);
 	void set_kdr(int power);
 

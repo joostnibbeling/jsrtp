@@ -7,10 +7,10 @@ template<typename Cipher>
 class CTR
 {
 public:
-	virtual void set_key(ByteVector in_key);
-	virtual void set_iv(ByteVector in_iv);
-	virtual ByteVector encrypt(const ByteVector& plain_text);
-	virtual ByteVector decrypt(const ByteVector& cipher_text);
+	void set_key(ByteVector in_key);
+	void set_iv(ByteVector in_iv);
+	void encrypt(ByteVector& plain_text);
+	void decrypt(ByteVector& cipher_text);
 private:
 	Cipher cipher;
 	void reset_ctr();
@@ -37,7 +37,7 @@ void CTR<Cipher>::set_iv(ByteVector in_iv)
 }
 
 template<typename Cipher>
-ByteVector CTR<Cipher>::encrypt(const ByteVector& plain_text)
+void CTR<Cipher>::encrypt(ByteVector& plain_text)
 {
 	if (ctr.size() == 0)
 	{
@@ -45,17 +45,16 @@ ByteVector CTR<Cipher>::encrypt(const ByteVector& plain_text)
 	}
 	
 	int to_encrypt = plain_text.size();
-	ByteVector cipher_text;
-	cipher_text.reserve(plain_text.size());
 
 	while (to_encrypt > 0)
 	{
 		int encrypted_ctr_left = Cipher::BLOCK_SIZE - ctr_offset;
 		int encrypting = std::min(encrypted_ctr_left, to_encrypt);
 
-		std::transform(encrypted_ctr.begin() + ctr_offset, encrypted_ctr.begin() + ctr_offset + encrypting,
+		std::transform(
+			encrypted_ctr.begin() + ctr_offset, encrypted_ctr.begin() + ctr_offset + encrypting,
 			plain_text.end() - to_encrypt,
-			std::back_inserter(cipher_text),
+			plain_text.end() - to_encrypt,
 			[](uint8_t in1, uint8_t in2) { return in1 ^ in2; } );
 
 		to_encrypt -= encrypting;
@@ -66,13 +65,10 @@ ByteVector CTR<Cipher>::encrypt(const ByteVector& plain_text)
 			encrypt_ctr();
 		}
 	}
-
-	return cipher_text;
-
 }
 
 template<typename Cipher>
-ByteVector CTR<Cipher>::decrypt(const ByteVector& cipher_text)
+void CTR<Cipher>::decrypt(ByteVector& cipher_text)
 {
 	return encrypt(cipher_text);
 }
