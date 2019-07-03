@@ -35,20 +35,57 @@ void SrtpAESCM::set_salt(ByteVector salt)
 	this->salt = std::move(salt);
 }
 
-void SrtpAESCM::encrypt(const rtp_header& hdr, unsigned char* payload, int payload_len, uint64_t index)
+void SrtpAESCM::encrypt(SrtpPacket& packet)
 {
+	// IV = (salt * 2^16) XOR (ssrc * 2^64) XOR (srtp_index * 2^16)
+	// Everything right padded with 0 to 16 bytes.
+
+	// Allowed salt length is 14
+	// salt * 2 ^ 16 is 16 bytes
+	// requires no padding.
 	ByteVector IV(16);
 	std::transform(salt.begin(), salt.end(), IV.begin(), IV.begin(), [](uint8_t x, uint8_t y) {return x ^ y; });
-	const uint8_t* ssrc = reinterpret_cast<const uint8_t*>(&hdr.ssrc);
-	std::transform(ssrc, ssrc+4, IV.begin() + 4, IV.begin() + 4, [](uint8_t x, uint8_t y) {return x ^ y; });
-	LittleEndianToBytesGen<uint64_t, 6> gen(index);
-	std::transform(IV.begin() + 8, IV.begin() + 14, IV.begin() + 8, [&gen](uint8_t x) { return gen() ^ x; });
+
+	// SSRC is 4 bytes.
+	// SSRC * 2^64 is 12 bytes
+	// 4 bytes of right padding
+	auto ssrc_bytes_gen = LittleEndianToBytes(packet.get_ssrc());
+	std::transform(IV.begin() + 4, IV.begin() + 8, IV.begin()+4, [&ssrc_bytes_gen](uint8_t x) {return x ^ ssrc_bytes_gen(); });
+
+	// srtp_index is 6 bytes
+	// srtp_index * 2 ^ 16 is 8 bytes
+	// 8 bytes or right padding
+	auto srtp_index_bytes_gen = LittleEndianToBytes<6>(packet.get_srtp_index());
+	std::transform(IV.begin() + 8, IV.begin() + 14, IV.begin() + 8, [&srtp_index_bytes_gen](uint8_t x) { return srtp_index_bytes_gen() ^ x; });
 
 	aes.set_iv(std::move(IV));
+	aes.encrypt(packet.get_payload_start(), packet.get_payload_length());
+}
 
-	ByteVector pl(payload_len);
-	std::copy(payload, payload + payload_len, pl.begin());
-	aes.encrypt(pl);
-	std::copy(pl.begin(), pl.end(), payload);
+void SrtpAESCM::decrypt(SrtpPacket& packet)
+{
+	// IV = (salt * 2^16) XOR (ssrc * 2^64) XOR (srtp_index * 2^16)
+	// Everything right padded with 0 to 16 bytes.
+
+	// Allowed salt length is 14
+	// salt * 2 ^ 16 is 16 bytes
+	// requires no padding.
+	ByteVector IV(16);
+	std::transform(salt.begin(), salt.end(), IV.begin(), IV.begin(), [](uint8_t x, uint8_t y) {return x ^ y; });
+
+	// SSRC is 4 bytes.
+	// SSRC * 2^64 is 12 bytes
+	// 4 bytes of right padding
+	auto ssrc_bytes_gen = LittleEndianToBytes(packet.get_ssrc());
+	std::transform(IV.begin() + 4, IV.begin() + 8, IV.begin()+4, [&ssrc_bytes_gen](uint8_t x) {return x ^ ssrc_bytes_gen(); });
+
+	// srtp_index is 6 bytes
+	// srtp_index * 2 ^ 16 is 8 bytes
+	// 8 bytes or right padding
+	auto srtp_index_bytes_gen = LittleEndianToBytes<6>(packet.get_srtp_index());
+	std::transform(IV.begin() + 8, IV.begin() + 14, IV.begin() + 8, [&srtp_index_bytes_gen](uint8_t x) { return srtp_index_bytes_gen() ^ x; });
+
+	aes.set_iv(std::move(IV));
+	aes.decrypt(packet.get_payload_start(), packet.get_payload_length());
 }
 

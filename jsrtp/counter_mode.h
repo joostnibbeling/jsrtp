@@ -9,8 +9,18 @@ class CTR
 public:
 	void set_key(ByteVector in_key);
 	void set_iv(ByteVector in_iv);
-	void encrypt(ByteVector& plain_text);
-	void decrypt(ByteVector& cipher_text);
+
+	template<typename Container>
+	void encrypt(Container& plain_text);
+
+	template<typename Iter>
+	void encrypt(Iter plain_text, int size);
+
+	template<typename Container>
+	void decrypt(Container& cipher_text);
+
+	template<typename Iter>
+	void decrypt(Iter plain_text, int size);
 private:
 	Cipher cipher;
 	void reset_ctr();
@@ -37,14 +47,30 @@ void CTR<Cipher>::set_iv(ByteVector in_iv)
 }
 
 template<typename Cipher>
-void CTR<Cipher>::encrypt(ByteVector& plain_text)
+template<typename Container>
+void CTR<Cipher>::encrypt(Container& plain_text)
+{
+	encrypt(plain_text.begin(), plain_text.size());
+}
+
+template<typename Cipher>
+template<typename Container>
+void CTR<Cipher>::decrypt(Container& cipher_text)
+{
+	return encrypt(cipher_text);
+}
+
+template<typename Cipher>
+template<typename Iter>
+void CTR<Cipher>::encrypt(Iter plain_text, int size)
 {
 	if (ctr.size() == 0)
 	{
 		throw std::exception("CTR mode IV not set");
 	}
-	
-	int to_encrypt = plain_text.size();
+
+	int to_encrypt = size;
+	Iter end = plain_text + size;
 
 	while (to_encrypt > 0)
 	{
@@ -53,9 +79,9 @@ void CTR<Cipher>::encrypt(ByteVector& plain_text)
 
 		std::transform(
 			encrypted_ctr.begin() + ctr_offset, encrypted_ctr.begin() + ctr_offset + encrypting,
-			plain_text.end() - to_encrypt,
-			plain_text.end() - to_encrypt,
-			[](uint8_t in1, uint8_t in2) { return in1 ^ in2; } );
+			end - to_encrypt,
+			end - to_encrypt,
+			[](uint8_t in1, uint8_t in2) { return in1 ^ in2; });
 
 		to_encrypt -= encrypting;
 		ctr_offset += encrypting;
@@ -68,9 +94,10 @@ void CTR<Cipher>::encrypt(ByteVector& plain_text)
 }
 
 template<typename Cipher>
-void CTR<Cipher>::decrypt(ByteVector& cipher_text)
+template<typename Iter>
+void CTR<Cipher>::decrypt(Iter plain_text, int size)
 {
-	return encrypt(cipher_text);
+	return encrypt(plain_text, size);
 }
 
 template<typename Cipher>

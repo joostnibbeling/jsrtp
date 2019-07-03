@@ -11,7 +11,10 @@
 enum class SRTP_ERROR
 {
 	NOT_IMPLEMENTED,
-	MASTER_KEY_EXPIRED
+	INVALID_SSRC,
+	MASTER_KEY_EXPIRED,
+	INVALID_PARAM,
+	AUTH_FAIL
 };
 
 class SrtpException : public std::runtime_error
@@ -53,6 +56,7 @@ public:
 
 	ByteVector get_master_key();
 	ByteVector get_master_salt();
+	ByteVector get_MKI_value();
 
 private:
 	int64_t packet_counter = 0;
@@ -64,14 +68,16 @@ private:
 class SrtpStream
 {
 public:
-	class Builder;
-	
+	class Parameters;
+
+	SrtpStream(const Parameters& params);
 	void add_key(unsigned char* key, int key_len);
 	void add_key(unsigned char* key, int key_len, unsigned char* MKI, int MKI_len);
-
 	int secure(unsigned char* rtp_packet, int packet_len);
+	int unsecure(unsigned char* srtp_packet, int packet_len);
 
 private:
+	uint32_t SSRC = 0;
 	uint32_t ROC = 0;
 	uint16_t s_1 = 0;
 
@@ -79,9 +85,6 @@ private:
 
 	std::unique_ptr<SrtpCipher> enc_alg;
 	std::unique_ptr<SrtpAuth> auth_alg;
-
-	//std::unique_ptr<CTR<AES>> enc_alg;
-	//std::unique_ptr<HMAC<SHA1>> auth_alg;
 
 	int master_key_len = 16;
 	int master_salt_len = 14;
@@ -91,66 +94,35 @@ private:
 
 	std::vector<MasterKey> master_keys;
 	int active_master_key = -1;
-	int determine_rtp_header_size(const rtp_header& hdr, unsigned char* rtp_packet, int packet_len);
+	int determine_rtp_header_size(const RtpHeader& hdr, unsigned char* rtp_packet, int packet_len);
 	uint32_t determine_roc(uint16_t seq);
-	uint64_t determine_srtp_index(const rtp_header& hdr);
+	uint32_t determine_roc_unsecure(uint16_t seq);
+	uint64_t determine_srtp_index(const RtpHeader& hdr);
+	int get_tag_length();
 
 	uint16_t last_seq;
 	bool initial_packet = false;
-
-
-
-	/*
-	// Encryption session key length
-	int n_e = 16;
-
-	// Authentication session key length
-	int n_a = 20;
-
-	// Encryption session key salt
-	int n_s = 14;
-
-	// Encryption tag length
-	int n_tag = 10;
-	*/
-
-
-	friend class Builder;
 };
 
-class SrtpStream::Builder
+class SrtpStream::Parameters
 {
 public:
-	Builder& set_suite(CRYPTO_SUITE suite);
-	Builder& set_enc_alg(ENC_ALG enc_alg);
-	Builder& set_auth_alg(AUTH_ALG auth_alg);
-	Builder& set_enc_session_key_len(int key_len);
-	Builder& set_auth_session_key_len(int key_len);
-	Builder& set_enc_salt_len(int salt_len);
-	Builder& set_tag_len(int tag_len);
-	Builder& set_use_mki(bool use_MKI);
-	Builder& set_mki_len(int MKI_len);
+	ENC_ALG cipher = ENC_ALG::AES_CM;
+	AUTH_ALG auth = AUTH_ALG::HMAC_SHA1;
 
-	SrtpStream* build();
-	std::unique_ptr<SrtpStream> build_unique();
-	std::shared_ptr<SrtpStream> build_shared();
-
-private:
-	Builder& set_master_salt_len(int master_salt_len);
-	Builder& set_master_key_len(int master_key_len);
-
-	ENC_ALG enc_alg = ENC_ALG::AES_CM;
-	AUTH_ALG auth_alg = AUTH_ALG::HMAC_SHA1;
-	int n_e = 16;
-	int n_s = 14;
-	int n_a = 20;
-	int tag_len = 10;
-	int master_key_len = 16;
-	int master_salt_len = 14;
+	int encryption_key_length = 16;
+	int encryption_salt_length = 14;
+	int authentication_key_length = 20;
+	int authentication_tag_length = 10;
 	bool use_MKI = false;
-	int MKI_len = 0;
+	int MKI_length = 0;
+	void set_suite(CRYPTO_SUITE suite);
 
-	void init_context(SrtpStream& ctx);
+	uint32_t SSRC = 0;
+private:
+	int master_key_length = 16;
+	int master_salt_length = 14;
+	friend class SrtpStream;
 };
 
 

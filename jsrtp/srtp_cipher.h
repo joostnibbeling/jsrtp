@@ -12,7 +12,8 @@ public:
 	virtual int get_salt_length() = 0;
 	virtual void set_key(ByteVector key) = 0;
 	virtual void set_salt(ByteVector salt) = 0;
-	virtual void encrypt(const rtp_header& hdr, unsigned char* payload, int payload_len, uint64_t index) = 0;
+	virtual void encrypt(SrtpPacket& packet) = 0;
+	virtual void decrypt(SrtpPacket& packet) = 0;
 	virtual ~SrtpCipher(){};
 };
 
@@ -24,7 +25,8 @@ public:
 	virtual int get_salt_length() override;
 	virtual void set_key(ByteVector key) override;
 	virtual void set_salt(ByteVector salt) override;
-	virtual void encrypt(const rtp_header& hdr, unsigned char* payload, int payload_len, uint64_t index) override;
+	virtual void encrypt(SrtpPacket& packet) override;
+	virtual void decrypt(SrtpPacket& packet) override;
 private:
 	int n_s;
 	int n_e;

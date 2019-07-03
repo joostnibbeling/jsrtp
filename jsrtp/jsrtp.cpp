@@ -30,14 +30,44 @@ ByteVector MasterKey::get_master_salt()
 
 void MasterKey::increment_packet_counter()
 {
-	packet_counter = packet_counter++ % (static_cast<int64_t>(2) << 48);
+	packet_counter = (packet_counter + 1) % (static_cast<int64_t>(2) << 48);
 	if (packet_counter == 0)
 	{
 		throw SrtpException("Master key has expired", SRTP_ERROR::MASTER_KEY_EXPIRED);
 	}
-
 }
 
+ByteVector MasterKey::get_MKI_value()
+{
+	return MKI_value;
+}
+
+SrtpStream::SrtpStream(const Parameters& params)
+{
+	master_key_len = params.master_key_length;
+	master_salt_len = params.master_salt_length;
+	use_MKI = params.use_MKI;
+	MKI_len = params.MKI_length;
+	SSRC = params.SSRC;
+
+	switch (params.cipher)
+	{
+	case ENC_ALG::AES_CM:
+		enc_alg = std::make_unique<SrtpAESCM>(params.encryption_key_length, params.encryption_salt_length);
+		break;
+	default:
+		throw SrtpException("Encryption cipher has not been implemented", SRTP_ERROR::NOT_IMPLEMENTED);
+	}
+
+	switch (params.auth)
+	{
+	case AUTH_ALG::HMAC_SHA1:
+		auth_alg = std::make_unique<SrtpHmacSha1>(params.authentication_key_length, params.authentication_tag_length);
+		break;
+	default:
+		throw SrtpException("Authentication method has not been implemented", SRTP_ERROR::NOT_IMPLEMENTED);
+	}
+}
 
 void SrtpStream::add_key(unsigned char* key, int key_len)
 {
@@ -89,47 +119,192 @@ int SrtpStream::secure(unsigned char* rtp_packet, int packet_len)
 		throw std::invalid_argument("Rtp packet length too small too contain rtp header");
 	}
 
-	rtp_header hdr;
-	std::memcpy(&hdr, rtp_packet, sizeof(rtp_header));
-	int header_size = determine_rtp_header_size(hdr, rtp_packet, packet_len);
-	unsigned char* rtp_payload = rtp_packet + header_size;
-	int payload_len = packet_len - header_size;
-
-	uint64_t srtp_index = determine_srtp_index(hdr);
-
-	// TODO: replay check
-
-	if (active_master_key == -1)
+	SrtpPacket packet(rtp_packet, packet_len, false, get_tag_length(), MKI_len);
+	
+	if (packet.get_ssrc() != SSRC)
 	{
-		active_master_key = 0;
-		kdf.set_master_key(master_keys[active_master_key].get_master_key());
-		kdf.set_master_salt(master_keys[active_master_key].get_master_salt());
+		throw SrtpException("SSRC of supplied packet does not match stream SSRC", SRTP_ERROR::INVALID_SSRC);
 	}
 
-	if (kdf.must_derive_key(srtp_index, KeyDerivation::Label::srtp_encryption_key))
+	uint32_t roc = determine_roc(packet.get_sequence_number());
+	uint64_t srtp_index = packet.determine_srtp_index(roc);
+	
+	bool key_required = enc_alg || auth_alg || use_MKI;
+
+	if (key_required)
 	{
-		auto key = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_encryption_key, enc_alg->get_key_length());
-		enc_alg->set_key(std::move(key));
+		if (master_keys.size() == 0)
+		{
+			throw SrtpException("No master key has been set", SRTP_ERROR::INVALID_PARAM);
+		}
+
+		if (active_master_key == -1)
+		{
+			active_master_key = 0;
+			kdf.set_master_key(master_keys.at(active_master_key).get_master_key());
+			kdf.set_master_salt(master_keys.at(active_master_key).get_master_salt());
+		}
+
+		master_keys.at(active_master_key).increment_packet_counter();
 	}
 
-	if (kdf.must_derive_key(srtp_index, KeyDerivation::Label::srtp_salting_key))
+	if (enc_alg)
 	{
-		auto salt = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_salting_key, enc_alg->get_salt_length());
-		enc_alg->set_salt(std::move(salt));
+
+		if (kdf.must_derive_key(srtp_index, KeyDerivation::Label::srtp_encryption_key))
+		{
+			auto key = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_encryption_key, enc_alg->get_key_length());
+			enc_alg->set_key(std::move(key));
+		}
+
+		if (kdf.must_derive_key(srtp_index, KeyDerivation::Label::srtp_salting_key))
+		{
+			auto salt = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_salting_key, enc_alg->get_salt_length());
+			enc_alg->set_salt(std::move(salt));
+		}
+
+
+		enc_alg->encrypt(packet);
 	}
 
-	enc_alg->encrypt(hdr, rtp_payload, payload_len, srtp_index);
-
-	if (kdf.must_derive_key(srtp_index, KeyDerivation::Label::srtp_authentication_key))
+	if (auth_alg)
 	{
-		auto key = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_authentication_key, auth_alg->get_key_length());
-		auth_alg->set_key(std::move(key));
+
+		if (kdf.must_derive_key(srtp_index, KeyDerivation::Label::srtp_authentication_key))
+		{
+			auto key = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_authentication_key, auth_alg->get_key_length());
+			auth_alg->set_key(std::move(key));
+		}
+
+		auth_alg->authenticate(packet);
 	}
 
-	auth_alg->authenticate(hdr, rtp_packet, packet_len, ROC);
-	initial_packet = true;
+	if (use_MKI)
+	{
+		std::copy_n(master_keys.at(active_master_key).get_MKI_value().begin(), MKI_len, packet.get_MKI_start());
+	}
 
-	return packet_len + auth_alg->get_auth_length() + MKI_len;
+	return packet_len + get_tag_length() + MKI_len;
+}
+
+
+int SrtpStream::unsecure(unsigned char* srtp_packet, int packet_len)
+{
+	if (packet_len < 12 + MKI_len + get_tag_length())
+	{
+		throw std::invalid_argument("Rtp packet length too small too contain rtp header, mki and tag");
+	}
+
+	SrtpPacket packet(srtp_packet, packet_len, true, get_tag_length(), MKI_len);
+
+	if (packet.get_ssrc() != SSRC)
+	{
+		throw SrtpException("SSRC of supplied packet does not match stream SSRC", SRTP_ERROR::INVALID_SSRC);
+	}
+
+	uint32_t roc = determine_roc_unsecure(packet.get_sequence_number());
+	uint64_t srtp_index = packet.determine_srtp_index(roc);
+
+	bool key_required = enc_alg || auth_alg || use_MKI;
+
+	if (key_required)
+	{
+		if (master_keys.size() == 0)
+		{
+			throw SrtpException("No master key has been set", SRTP_ERROR::INVALID_PARAM);
+		}
+
+		if (active_master_key == -1)
+		{
+			active_master_key = 0;
+			kdf.set_master_key(master_keys.at(active_master_key).get_master_key());
+			kdf.set_master_salt(master_keys.at(active_master_key).get_master_salt());
+		}
+	}
+
+	if (auth_alg)
+	{
+		if (kdf.must_derive_key(srtp_index, KeyDerivation::Label::srtp_authentication_key))
+		{
+			auto key = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_authentication_key, auth_alg->get_key_length());
+			auth_alg->set_key(std::move(key));
+		}
+
+		if (!auth_alg->check(packet))
+		{
+			throw SrtpException("Could not authenticate packet", SRTP_ERROR::AUTH_FAIL);
+		}
+	}
+
+	if (enc_alg)
+	{
+
+		if (kdf.must_derive_key(srtp_index, KeyDerivation::Label::srtp_encryption_key))
+		{
+			auto key = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_encryption_key, enc_alg->get_key_length());
+			enc_alg->set_key(std::move(key));
+		}
+
+		if (kdf.must_derive_key(srtp_index, KeyDerivation::Label::srtp_salting_key))
+		{
+			auto salt = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_salting_key, enc_alg->get_salt_length());
+			enc_alg->set_salt(std::move(salt));
+		}
+
+		enc_alg->decrypt(packet);
+	}
+
+	return packet_len - MKI_len - get_tag_length();
+}
+
+int SrtpStream::get_tag_length()
+{
+	return auth_alg ? auth_alg->get_auth_length() : 0;
+}
+
+
+uint32_t SrtpStream::determine_roc_unsecure(uint16_t seq)
+{
+	if (!initial_packet)
+	{
+		s_1 = seq;
+		initial_packet = true;
+	}
+
+	uint32_t v;
+
+	int32_t s_1s = s_1;
+	int64_t ROCs = ROC;
+	int32_t seqs = seq;
+
+	if (s_1s < (1 << 15))
+	{
+		if (seqs - s_1s > (1 << 15))
+		{
+			v = static_cast<uint32_t>(mod(ROCs - 1, static_cast<int64_t>(1) << 32));
+		}
+		else
+		{
+			v = ROC;
+			if (seq > s_1) s_1 = seq;
+		}
+	}
+	else
+	{
+		if (s_1s - (1 << 15) > seqs)
+		{
+			v = static_cast<uint32_t>(mod(ROCs + 1, static_cast<int64_t>(1) << 32));
+			ROC = v;
+			s_1 = seq;
+		}
+		else
+		{
+			v = ROC;
+			if (seq > s_1) s_1 = seq;
+		}
+	}
+
+	return v;
 }
 
 uint32_t SrtpStream::determine_roc(uint16_t seq)
@@ -137,24 +312,26 @@ uint32_t SrtpStream::determine_roc(uint16_t seq)
 	if (!initial_packet)
 	{
 		last_seq = seq;
+		initial_packet = true;
 	}
 	else
 	{
 		if (last_seq > seq)
 		{
+			last_seq = seq;
 			ROC++;
 		}
 	}
 	return ROC;
 }
 
-uint64_t SrtpStream::determine_srtp_index(const rtp_header& hdr)
+uint64_t SrtpStream::determine_srtp_index(const RtpHeader& hdr)
 {
 	return ( static_cast<uint64_t>(determine_roc(hton(hdr.seq))) << 16) + hton(hdr.seq);
 }
 
 
-int SrtpStream::determine_rtp_header_size(const rtp_header& hdr, unsigned char* rtp_packet, int packet_len)
+int SrtpStream::determine_rtp_header_size(const RtpHeader& hdr, unsigned char* rtp_packet, int packet_len)
 {
 
 	if (hdr.version != 2)
@@ -163,11 +340,6 @@ int SrtpStream::determine_rtp_header_size(const rtp_header& hdr, unsigned char* 
 	}
 
 	int header_size = 12 + hdr.cc * 4;
-
-	if (packet_len < header_size)
-	{
-		throw std::invalid_argument("Rtp packet length too small too contain rtp header + CSRC");
-	}
 
 	if (hdr.x)
 	{
@@ -183,11 +355,15 @@ int SrtpStream::determine_rtp_header_size(const rtp_header& hdr, unsigned char* 
 
 	}
 
+	if (packet_len < header_size)
+	{
+		throw std::invalid_argument("Rtp packet length too small too contain rtp header + CSRC");
+	}
+
 	return header_size;
 }
 
-
-SrtpStream::Builder& SrtpStream::Builder::set_suite(CRYPTO_SUITE suite)
+void SrtpStream::Parameters::set_suite(CRYPTO_SUITE suite)
 {
 	switch (suite)
 	{
@@ -195,129 +371,20 @@ SrtpStream::Builder& SrtpStream::Builder::set_suite(CRYPTO_SUITE suite)
 		// Default, do nothing
 		break;
 	case CRYPTO_SUITE::AES_CM_128_HMAC_SHA1_32:
-		this->set_tag_len(4);
+		authentication_tag_length = 4;
 		break;
 	case CRYPTO_SUITE::NULL_CIPHER_HMAC_SHA1_32:
-		this->set_enc_alg(ENC_ALG::NULL_CIPHER).set_enc_session_key_len(0);
-		this->set_tag_len(4);
+		cipher = ENC_ALG::NULL_CIPHER;
+		authentication_tag_length = 4;
 		break;
 	case CRYPTO_SUITE::NULL_CIPHER_HMAC_SHA1_80:
-		this->set_enc_alg(ENC_ALG::NULL_CIPHER).set_enc_session_key_len(0);
+		cipher = ENC_ALG::NULL_CIPHER;
 		break;
 	case CRYPTO_SUITE::NULL_CIPHER_NULL_AUTH:
-		this->set_enc_alg(ENC_ALG::NULL_CIPHER).set_enc_session_key_len(0);
-		this->set_auth_alg(AUTH_ALG::NULL_AUTH).set_auth_session_key_len(0);
+		cipher = ENC_ALG::NULL_CIPHER;
+		auth = AUTH_ALG::NULL_AUTH;
 		break;
 	default:
 		throw std::invalid_argument("Crypte Suite not implemented");
-	}
-
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_enc_alg(ENC_ALG enc_alg)
-{
-	this->enc_alg = enc_alg;
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_auth_alg(AUTH_ALG auth_alg)
-{
-	this->auth_alg = auth_alg;
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_enc_session_key_len(int key_len)
-{
-	this->n_e = key_len;
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_auth_session_key_len(int key_len)
-{
-	this->n_a = key_len;
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_tag_len(int tag_len)
-{
-	this->tag_len = tag_len;
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_master_salt_len(int master_salt_len)
-{
-	this->master_salt_len = master_key_len;
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_enc_salt_len(int salt_len)
-{
-	this->n_s = salt_len;
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_master_key_len(int master_key_len)
-{
-	this->master_key_len = master_key_len;
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_use_mki(bool use_MKI)
-{
-	this->use_MKI = use_MKI;
-	return *this;
-}
-
-SrtpStream::Builder& SrtpStream::Builder::set_mki_len(int MKI_len)
-{
-	this->MKI_len = MKI_len;
-	return *this;
-}
-
-SrtpStream* SrtpStream::Builder::build()
-{
-	auto ctx = new SrtpStream();
-	init_context(*ctx);
-	return ctx;
-}
-
-std::unique_ptr<SrtpStream> SrtpStream::Builder::build_unique()
-{
-	auto ctx = std::make_unique<SrtpStream>();
-	init_context(*ctx);
-	return ctx;
-}
-
-std::shared_ptr<SrtpStream> SrtpStream::Builder::build_shared()
-{
-	auto ctx = std::make_shared<SrtpStream>();
-	init_context(*ctx);
-	return ctx;
-}
-
-void SrtpStream::Builder::init_context(SrtpStream& ctx)
-{
-	ctx.master_key_len = this->master_key_len;
-	ctx.master_salt_len = this->master_salt_len;
-	ctx.use_MKI = this->use_MKI;
-	ctx.MKI_len = this->MKI_len;
-
-	switch (this->enc_alg)
-	{
-	case ENC_ALG::AES_CM:
-		ctx.enc_alg = std::make_unique<SrtpAESCM>(this->n_e, this->n_s);
-		break;
-	default:
-		throw SrtpException("Encryption cipher has not been implemented", SRTP_ERROR::NOT_IMPLEMENTED);
-	}
-
-	switch (this->auth_alg)
-	{
-		case AUTH_ALG::HMAC_SHA1:
-			ctx.auth_alg = std::make_unique<SrtpHmacSha1>(this->n_a, this->tag_len);
-			break;
-		default:
-			throw SrtpException("Authentication method has not been implemented", SRTP_ERROR::NOT_IMPLEMENTED);
 	}
 }
