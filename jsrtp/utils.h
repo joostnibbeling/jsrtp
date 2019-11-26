@@ -78,9 +78,13 @@ using ByteVector = std::vector<uint8_t>;
 using ByteVectorIt = typename std::vector<uint8_t>::iterator;
 using ByteVectorConstIt = typename std::vector<uint8_t>::const_iterator;
 
-template<typename Integral>
+constexpr bool LITTLE_ENDIAN = true;
+
+template<typename Integral, typename std::enable_if_t<LITTLE_ENDIAN, Integral>* = nullptr>
 Integral hton(Integral in)
 {
+	//static_assert(std::is_unsigned_v<Integral>, "Host to network order only for unsigned types");
+
 	Integral res = 0;
 	Integral mask = 0xFF;
 
@@ -93,31 +97,37 @@ Integral hton(Integral in)
 	return res;
 }
 
-template<typename Intergral, std::size_t bytes>
-class LittleEndianToBytesGen
+template<typename Integral, typename std::enable_if_t<!LITTLE_ENDIAN, Integral>* = nullptr>
+Integral hton(Integral in)
+{
+	return in;
+}
+
+template<typename Integral, std::size_t bytes>
+class IntToBytes
 {
 public:
-	LittleEndianToBytesGen(Intergral in) : little_endian(in), offset(bytes * BITS_PER_BYTE) {}
+	IntToBytes(Integral in) : to_convert(in), offset(bytes* BITS_PER_BYTE) {}
 	uint8_t operator() () {
 		offset -= 8;
 		if (offset < 0) return 0;
-		return (little_endian & 0xFF << offset) >> offset;
+		return (to_convert & 0xFF << offset) >> offset;
 	}
 private:
-	Intergral little_endian;
+	Integral to_convert;
 	int offset;
 };
 
 template<typename Integral, std::size_t bytes = sizeof(Integral)>
-auto LittleEndianToBytes(Integral in)
+auto make_int_to_bytes(Integral in)
 {
-	return LittleEndianToBytesGen<Integral, bytes>(in);
+	return IntToBytes<Integral, bytes>(in);
 }
 
 template<std::size_t bytes, typename Integral>
-auto LittleEndianToBytes(Integral in)
+auto make_int_to_bytes(Integral in)
 {
-	return LittleEndianToBytesGen<Integral, bytes>(in);
+	return IntToBytes<Integral, bytes>(in);
 }
 
 template<typename Integral>

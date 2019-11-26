@@ -531,12 +531,16 @@ TEST(SRTP_SECURE, AES_128_CM_HMAC_SHA1_10)
 	packet.resize(packet_size + 10);
 
 	ByteVector master_key{ 0xE1,0xF9,0x7A,0x0D,0x3E,0x01,0x8B,0xE0,0xD6,0x4F,0xA3,0x2C,0x06,0xDE,0x41,0x39, 0x0E,0xC6,0x75,0xAD,0x49,0x8A,0xFE,0xEB,0xB6,0x96,0x0B,0x3A,0xAB,0xE6};
+	
 	SrtpStream::Parameters params;
 	params.set_suite(CRYPTO_SUITE::AES_CM_128_HMAC_SHA1_80);
 	params.SSRC = 0x67588;
-
 	SrtpStream stream(params);
-	stream.add_key(master_key.data(), master_key.size());
+
+	MasterKey::Parameters key_params;
+	key_params.key = master_key.data();
+	key_params.key_length = master_key.size();
+	stream.add_key(key_params);
 	stream.secure(packet.data(), packet_size);
 	EXPECT_EQ(packet, secured_packet);
 }
@@ -570,14 +574,21 @@ TEST(SRTP_SECURE, AES_128_CM_HMAC_SHA1_10_MKI)
 	packet.resize(packet_size + 10 + 4);
 
 	ByteVector master_key{ 0xE1,0xF9,0x7A,0x0D,0x3E,0x01,0x8B,0xE0,0xD6,0x4F,0xA3,0x2C,0x06,0xDE,0x41,0x39, 0x0E,0xC6,0x75,0xAD,0x49,0x8A,0xFE,0xEB,0xB6,0x96,0x0B,0x3A,0xAB,0xE6 };
+
 	SrtpStream::Parameters params;
 	params.set_suite(CRYPTO_SUITE::AES_CM_128_HMAC_SHA1_80);
 	params.SSRC = 0x67588;
 	params.use_MKI = true;
 	params.MKI_length = 4;
-
 	SrtpStream stream(params);
-	stream.add_key(master_key.data(), master_key.size(), MKI.data(), MKI.size());
+
+	MasterKey::Parameters key_params;
+	key_params.key = master_key.data();
+	key_params.key_length = master_key.size();
+	key_params.MKI = MKI.data();
+	key_params.MKI_length = MKI.size();
+
+	stream.add_key(key_params);
 	stream.secure(packet.data(), packet_size);
 	EXPECT_EQ(packet, secured_packet);
 }
@@ -606,17 +617,17 @@ TEST(SRTP_UNSECURE, AES_128_CM_HMAC_SHA1_10)
 
 	ByteVector master_key{ 0xE1,0xF9,0x7A,0x0D,0x3E,0x01,0x8B,0xE0,0xD6,0x4F,0xA3,0x2C,0x06,0xDE,0x41,0x39, 0x0E,0xC6,0x75,0xAD,0x49,0x8A,0xFE,0xEB,0xB6,0x96,0x0B,0x3A,0xAB,0xE6 };
 
-
-	//int packet_size = packet.size();
-	//packet.resize(packet_size + 10);
-
-
 	SrtpStream::Parameters params;
 	params.set_suite(CRYPTO_SUITE::AES_CM_128_HMAC_SHA1_80);
 	params.SSRC = 0x67588;
 
 	SrtpStream stream(params);
-	stream.add_key(master_key.data(), master_key.size());
+
+	MasterKey::Parameters key_params;
+	key_params.key = master_key.data();
+	key_params.key_length = master_key.size();
+	stream.add_key(key_params);
+
 	int packet_length = stream.unsecure(secured_packet.data(), secured_packet.size());
 	secured_packet.resize(packet_length);
 

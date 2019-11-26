@@ -36,7 +36,7 @@ void SrtpHmacSha1::authenticate(SrtpPacket& packet)
 
 	uint32_t roc = (packet.get_srtp_index() >> 32);
 	ByteVector roc_bytes(sizeof(roc));
-	std::generate_n(roc_bytes.begin(), sizeof(roc), LittleEndianToBytes(roc));
+	std::generate_n(roc_bytes.begin(), sizeof(roc), make_int_to_bytes(roc));
 	auth.append(roc_bytes);
 
 	// Append auth tag after payload. 
@@ -53,7 +53,7 @@ bool SrtpHmacSha1::check(SrtpPacket& packet)
 
 	uint32_t roc = (packet.get_srtp_index() >> 32);
 	ByteVector roc_bytes(sizeof(roc));
-	std::generate_n(roc_bytes.begin(), sizeof(roc), LittleEndianToBytes(roc));
+	std::generate_n(roc_bytes.begin(), sizeof(roc), make_int_to_bytes(roc));
 	auth.append(roc_bytes);
 
 	// Append auth tag after payload. 

@@ -24,14 +24,14 @@ std::array<uint32_t, 80> SHA1::get_words(std::vector<uint8_t>::iterator chunk_st
 
 	for (int i = 0; i < 16; ++i)
 	{
-		auto little_endian = [](uint32_t tot, uint8_t add) {
+		auto toWord = [](uint32_t tot, uint8_t add) {
 			return (tot << 8) + add;
 		};
 
 		auto start = chunk_start + (i * 4);
 		auto end = start + 4;
 
-		words[i] = std::accumulate(start, end, 0, little_endian);
+		words[i] = std::accumulate(start, end, 0, toWord);
 	}
 
 	for (int i = 16; i < 80; ++i)
@@ -105,11 +105,11 @@ std::vector<uint8_t> SHA1::get_digest()
 
 	std::vector<uint8_t> digest(DIGEST_SIZE);
 
-	std::generate(digest.begin(), digest.begin() + 4, LittleEndianToBytes(h0));
-	std::generate(digest.begin() + 4, digest.begin() + 8, LittleEndianToBytes(h1));
-	std::generate(digest.begin() + 8, digest.begin() + 12, LittleEndianToBytes(h2));
-	std::generate(digest.begin() + 12, digest.begin() + 16, LittleEndianToBytes(h3));
-	std::generate(digest.begin() + 16, digest.begin() + 20, LittleEndianToBytes(h4));
+	std::generate(digest.begin(), digest.begin() + 4, make_int_to_bytes(h0));
+	std::generate(digest.begin() + 4, digest.begin() + 8, make_int_to_bytes(h1));
+	std::generate(digest.begin() + 8, digest.begin() + 12, make_int_to_bytes(h2));
+	std::generate(digest.begin() + 12, digest.begin() + 16, make_int_to_bytes(h3));
+	std::generate(digest.begin() + 16, digest.begin() + 20, make_int_to_bytes(h4));
 	
 	message.clear();
 	message_len = 0;

@@ -27,6 +27,7 @@ void KeyDerivation::set_kdr(int power)
 	}
 
 	kdr = static_cast<int>(pow(2, power));
+	derived_keys.clear();
 }
 
 ByteVector KeyDerivation::derive_key(uint64_t index, Label label, uint64_t n)
@@ -44,7 +45,7 @@ ByteVector KeyDerivation::derive_key(uint64_t index, Label label, uint64_t n)
 
 		std::fill_n(std::back_inserter(x), MASTER_SALT_LEN - INDEX_LEN - 1, 0);
 		x.push_back(static_cast<uint8_t>(label));
-		std::generate_n(std::back_inserter(x), INDEX_LEN, LittleEndianToBytes<uint64_t, 6>(r));
+		std::generate_n(std::back_inserter(x), INDEX_LEN, make_int_to_bytes<6>(r));
 
 		std::transform(master_salt.begin(),
 			master_salt.end(),
@@ -60,7 +61,7 @@ ByteVector KeyDerivation::derive_key(uint64_t index, Label label, uint64_t n)
 		// No master salt here.
 		// Simply append label with index and pad until proper input length m for PRF is reached.
 		x.push_back(static_cast<uint8_t>(label));
-		std::generate_n(std::back_inserter(x), INDEX_LEN, LittleEndianToBytes<uint64_t, 6>(r));
+		std::generate_n(std::back_inserter(x), INDEX_LEN, make_int_to_bytes<6>(r));
 		std::fill_n(std::back_inserter(x), PRF_M - INDEX_LEN, 0);
 	}
 

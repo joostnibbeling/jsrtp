@@ -7,6 +7,7 @@
 #include "key_derivation.h"
 #include "srtp_cipher.h"
 #include "srtp_auth.h"
+#include <bitset>
 
 enum class SRTP_ERROR
 {
@@ -49,6 +50,8 @@ enum class AUTH_ALG
 class MasterKey
 {
 public:
+	class Parameters;
+
 	void set_key(unsigned char* key, int length);
 	void set_salt(unsigned char* salt, int length);
 	void set_mki(unsigned char* mki, int length);
@@ -58,11 +61,34 @@ public:
 	ByteVector get_master_salt();
 	ByteVector get_MKI_value();
 
+	int kdr = 0;
+
 private:
 	int64_t packet_counter = 0;
 	ByteVector MKI_value;
 	ByteVector master_key;
 	ByteVector master_salt;
+};
+
+class MasterKey::Parameters
+{
+public:
+	unsigned char* key = nullptr;
+	int key_length = 0;
+	unsigned char* MKI = nullptr;
+	int MKI_length = 0;
+	int key_derivation_rate = 0;
+};
+
+
+class ReplayList
+{
+public:
+	bool is_replay(uint64_t srtp_index);
+private:
+	uint64_t last_index = static_cast<uint64_t>(0xFFFF) << 48;
+	std::bitset<64> bitmap;
+	static constexpr int LAST_INDEX = 64 - 1;
 };
 
 class SrtpStream
@@ -71,8 +97,7 @@ public:
 	class Parameters;
 
 	SrtpStream(const Parameters& params);
-	void add_key(unsigned char* key, int key_len);
-	void add_key(unsigned char* key, int key_len, unsigned char* MKI, int MKI_len);
+	void add_key(const MasterKey::Parameters& key_params);
 	int secure(unsigned char* rtp_packet, int packet_len);
 	int unsecure(unsigned char* srtp_packet, int packet_len);
 

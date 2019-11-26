@@ -69,46 +69,29 @@ SrtpStream::SrtpStream(const Parameters& params)
 	}
 }
 
-void SrtpStream::add_key(unsigned char* key, int key_len)
+void SrtpStream::add_key(const MasterKey::Parameters& key_params)
 {
+	MasterKey mkey;
+
+	if (!key_params.key) throw SrtpException("Master key not set", SRTP_ERROR::INVALID_PARAM);
+
+	if (key_params.key_length != master_key_len + master_salt_len)  throw SrtpException("Invalid master key length", SRTP_ERROR::INVALID_PARAM);
+
+	mkey.set_key(key_params.key, master_key_len);
+	mkey.set_salt(key_params.key + master_key_len, master_salt_len);
+
 	if (use_MKI)
 	{
-		throw std::invalid_argument("Missing MKI value");
+		if (!key_params.MKI) throw SrtpException("MKI not set", SRTP_ERROR::INVALID_PARAM);
+
+		if (key_params.MKI_length != MKI_len) throw SrtpException("Invalid MKI length", SRTP_ERROR::INVALID_PARAM);
+
+		mkey.set_mki(key_params.MKI, key_params.MKI_length);
 	}
 
-	if (key_len != master_key_len + master_salt_len)
-	{
-		throw std::invalid_argument("Invalid master key length");
-	}
+	if (key_params.key_derivation_rate < 0 || key_params.key_derivation_rate > 24) throw SrtpException("Invalid key derivation rate", SRTP_ERROR::INVALID_PARAM);
 
-	MasterKey mkey;
-	mkey.set_key(key, master_key_len);
-	mkey.set_salt(key + master_key_len, master_salt_len);
-	master_keys.push_back(std::move(mkey));
-}
-
-void SrtpStream::add_key(unsigned char* key, int key_len, unsigned char* MKI, int MKI_len)
-{
-	if (!use_MKI)
-	{
-		throw std::invalid_argument("MKI indicator not set");
-	}
-
-	if (key_len != master_key_len + master_salt_len)
-	{
-		throw std::invalid_argument("Invalid master key length");
-	}
-
-	if (MKI_len != this->MKI_len)
-	{
-		throw std::invalid_argument("Invalid MKI length");
-	}
-
-
-	MasterKey mkey;
-	mkey.set_key(key, master_key_len);
-	mkey.set_salt(key + master_key_len, master_salt_len);
-	mkey.set_mki(MKI, MKI_len);
+	mkey.kdr = key_params.key_derivation_rate;
 	master_keys.push_back(std::move(mkey));
 }
 
@@ -229,6 +212,8 @@ int SrtpStream::unsecure(unsigned char* srtp_packet, int packet_len)
 			auto key = kdf.derive_key(srtp_index, KeyDerivation::Label::srtp_authentication_key, auth_alg->get_key_length());
 			auth_alg->set_key(std::move(key));
 		}
+
+		// Replay check
 
 		if (!auth_alg->check(packet))
 		{
@@ -387,4 +372,32 @@ void SrtpStream::Parameters::set_suite(CRYPTO_SUITE suite)
 	default:
 		throw std::invalid_argument("Crypte Suite not implemented");
 	}
+}
+
+bool ReplayList::is_replay(uint64_t srtp_index)
+{
+	if (last_index == static_cast<uint64_t>(0xFFFF) << 48)
+	{
+		if (srtp_index < bitmap.size())  bitmap.set(srtp_index, true);
+		else bitmap.set(LAST_INDEX, true);
+
+		last_index = srtp_index;
+		return false;
+	}
+
+
+	if (srtp_index > last_index)
+	{
+		uint64_t diff = srtp_index - last_index;
+		bitmap <<= diff;
+		bitmap.set(LAST_INDEX, true);
+		return false;
+	}
+
+	uint64_t diff = last_index - srtp_index;
+	if (diff >= bitmap.size()) return false;
+	auto index = LAST_INDEX - diff;
+	if (bitmap.test(index)) return true;
+	bitmap.set(index);
+	return false;
 }
